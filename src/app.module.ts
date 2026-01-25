@@ -6,7 +6,6 @@ import { ApiKeyGuard } from './guards/api-key.guard';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
-import { HotModule } from './hot/hot.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,7 +15,6 @@ import { AppService } from './app.service';
     DatabaseModule,
     AuthModule,
     CommonModule,
-    HotModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 import { Controller, Post, Body, UseGuards, Get, Request, Put, HttpCode, HttpStatus, UsePipes } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDtoSchema, LoginDtoSchema, ChangePasswordDtoSchema, ForgotPasswordDtoSchema, ResetPasswordDtoSchema, type RegisterDto, type LoginDto, type ChangePasswordDto, type ForgotPasswordDto, type ResetPasswordDto } from './auth.dto';
+import { RegisterDtoSchema, LoginDtoSchema, ChangePasswordDtoSchema, ForgotPasswordDtoSchema, ResetPasswordDtoSchema, type RegisterDto, type LoginDto, type ChangePasswordDto, type ForgotPasswordDto, type ResetPasswordDto, RegisterDtoSwagger, LoginDtoSwagger, ChangePasswordDtoSwagger, ForgotPasswordDtoSwagger, ResetPasswordDtoSwagger } from './auth.dto';
 import type { AuthData } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
@@ -18,6 +18,7 @@ export class AuthController {
   @Post('register')
   @UsePipes(new ZodValidationPipe(RegisterDtoSchema))
   @ApiOperation({ summary: 'Register a new user' })
+  @ApiBody({ type: RegisterDtoSwagger })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerDto: RegisterDto): Promise<ApiResponseType<AuthData>> {
@@ -28,6 +29,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(LoginDtoSchema))
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Login user' })
+  @ApiBody({ type: LoginDtoSwagger })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto): Promise<ApiResponseType<AuthData>> {
@@ -48,6 +50,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(ChangePasswordDtoSchema))
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change user password' })
+  @ApiBody({ type: ChangePasswordDtoSwagger })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid current password' })
   async changePassword(
@@ -61,6 +64,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(ForgotPasswordDtoSchema))
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Request password reset' })
+  @ApiBody({ type: ForgotPasswordDtoSwagger })
   @ApiResponse({ status: 200, description: 'Password reset email sent' })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto): Promise<ApiResponseType<{ message: string }>> {
     return this.authService.forgotPassword(forgotPasswordDto.email);
@@ -70,6 +74,7 @@ export class AuthController {
   @UsePipes(new ZodValidationPipe(ResetPasswordDtoSchema))
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Reset password with token' })
+  @ApiBody({ type: ResetPasswordDtoSwagger })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto): ApiResponseType<{ message: string }> {
