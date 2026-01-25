@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import compression from 'compression';
 import csurf from 'csurf';
+import cookieParser from 'cookie-parser';
 import type { Request, Response, RequestHandler } from 'express';
 
 async function bootstrap() {
@@ -45,22 +45,19 @@ async function bootstrap() {
         // Apply compression for other content (default compression logic)
         const acceptEncoding = req.headers['accept-encoding'] as string;
         const contentEncoding = res.getHeader('Content-Encoding') as string;
-        return !!(
-          acceptEncoding &&
-          acceptEncoding.includes('gzip') &&
-          !contentEncoding
-        );
+        return !!(acceptEncoding && acceptEncoding.includes('gzip') && !contentEncoding);
       },
     }),
   );
 
   // Enable CORS
   app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
-      'http://localhost:3000',
-    ],
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
     credentials: true,
   });
+
+  // Cookie parser for CSRF
+  app.use(cookieParser(process.env.CSRF_SECRET || 'default-csrf-secret'));
 
   // CSRF protection
   app.use(
@@ -70,24 +67,27 @@ async function bootstrap() {
     }),
   );
 
-  // Global validation pipe
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
-
   const config = new DocumentBuilder()
     .setTitle('E-Commerce API with Redis Caching')
     .setDescription(
       'A Nest.js e-commerce API demonstrating Redis caching best practices for product management and performance optimization.',
     )
     .setVersion('1.0.0')
+    .addTag('auth', 'Authentication and user management')
     .addTag('products', 'Product management endpoints')
     .addTag('cache', 'Caching management and monitoring')
     .addTag('api', 'General API endpoints')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'JWT',
+        description: 'Enter JWT token',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
     .addApiKey({ type: 'apiKey', name: 'X-API-KEY', in: 'header' }, 'api-key')
     .addServer(`http://localhost:${process.env.SERVER_PORT ?? 3000}`, 'Local')
     .addServer('https://dev.yourapp.com', 'Development')
