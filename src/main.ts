@@ -1,9 +1,83 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
+import helmet from 'helmet';
+import compression from 'compression';
+import csurf from 'csurf';
+import type { Request, Response, RequestHandler } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security middlewares
+  app.use(helmet());
+  app.use(
+    (compression as (options: any) => RequestHandler)({
+      level: 6,
+      threshold: 100 * 1024, // 100 KB
+      filter: (req: Request, res: Response): boolean => {
+        // Skip compression for already compressed file types
+        const contentType = res.getHeader('Content-Type') as string;
+        if (contentType) {
+          // Images
+          if (contentType.includes('image/')) return false;
+          // Videos
+          if (contentType.includes('video/')) return false;
+          // PDFs
+          if (contentType.includes('application/pdf')) return false;
+          // Archives (already compressed)
+          if (contentType.includes('application/zip')) return false;
+          if (contentType.includes('application/gzip')) return false;
+          if (contentType.includes('application/x-7z-compressed')) return false;
+          // Audio files (some are compressed)
+          if (contentType.includes('audio/')) return false;
+        }
+
+        // Check file extensions in URL as fallback
+        const url = req.url || '';
+        const compressedExtensions =
+          /\.(pdf|jpg|jpeg|png|gif|webp|svg|mp4|avi|mkv|mov|wmv|flv|webm|mp3|wav|aac|ogg|zip|rar|7z|gz|bz2)$/i;
+        if (compressedExtensions.test(url)) {
+          return false;
+        }
+
+        // Apply compression for other content (default compression logic)
+        const acceptEncoding = req.headers['accept-encoding'] as string;
+        const contentEncoding = res.getHeader('Content-Encoding') as string;
+        return !!(
+          acceptEncoding &&
+          acceptEncoding.includes('gzip') &&
+          !contentEncoding
+        );
+      },
+    }),
+  );
+
+  // Enable CORS
+  app.enableCors({
+    origin: process.env.ALLOWED_ORIGINS?.split(',') || [
+      'http://localhost:3000',
+    ],
+    credentials: true,
+  });
+
+  // CSRF protection
+  app.use(
+    csurf({
+      cookie: true,
+      ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+    }),
+  );
+
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   const config = new DocumentBuilder()
     .setTitle('E-Commerce API with Redis Caching')
