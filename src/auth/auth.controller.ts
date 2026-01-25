@@ -10,7 +10,7 @@ import { Roles } from './roles.decorator';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import type { ApiResponse as ApiResponseType } from '../common/api-response';
 
-@ApiTags('Authentication')
+@ApiTags('auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}

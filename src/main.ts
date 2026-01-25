@@ -77,6 +77,7 @@ async function bootstrap() {
     .addTag('products', 'Product management endpoints')
     .addTag('cache', 'Caching management and monitoring')
     .addTag('api', 'General API endpoints')
+    .addTag('hot', 'Hot/Featured endpoints')
     .addBearerAuth(
       {
         type: 'http',
