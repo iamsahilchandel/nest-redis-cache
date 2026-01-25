@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Controller, Post, Body, UseGuards, Get, Request, Put, HttpCode, HttpStatus, UsePipes } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Get, Request, Put, HttpCode, HttpStatus, UsePipes, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDtoSchema, LoginDtoSchema, ChangePasswordDtoSchema, ForgotPasswordDtoSchema, ResetPasswordDtoSchema, type RegisterDto, type LoginDto, type ChangePasswordDto, type ForgotPasswordDto, type ResetPasswordDto, RegisterDtoSwagger, LoginDtoSwagger, ChangePasswordDtoSwagger, ForgotPasswordDtoSwagger, ResetPasswordDtoSwagger } from './auth.dto';
@@ -13,6 +13,8 @@ import type { ApiResponse as ApiResponseType } from '../common/api-response';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
@@ -22,7 +24,15 @@ export class AuthController {
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerDto: RegisterDto): Promise<ApiResponseType<AuthData>> {
-    return this.authService.register(registerDto);
+    this.logger.log(`Register attempt for email: ${registerDto.email}`);
+    try {
+      const result = await this.authService.register(registerDto);
+      this.logger.log(`User registered successfully: ${registerDto.email}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Registration failed for email: ${registerDto.email}`, error.stack);
+      throw error;
+    }
   }
 
   @Post('login')
@@ -33,7 +43,15 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto): Promise<ApiResponseType<AuthData>> {
-    return this.authService.login(loginDto);
+    this.logger.log(`Login attempt for email: ${loginDto.email}`);
+    try {
+      const result = await this.authService.login(loginDto);
+      this.logger.log(`Login successful for email: ${loginDto.email}`);
+      return result;
+    } catch (error) {
+      this.logger.warn(`Login failed for email: ${loginDto.email} - ${error.message}`);
+      throw error;
+    }
   }
 
   @UseGuards(JwtAuthGuard)
@@ -42,6 +60,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get user profile' })
   @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
   getProfile(@Request() req: any) {
+    this.logger.log(`Profile request for user ID: ${req.user?.id}`);
     return req.user;
   }
 
@@ -57,7 +76,16 @@ export class AuthController {
     @Request() req: any,
     @Body() changePasswordDto: ChangePasswordDto,
   ): Promise<ApiResponseType<{ message: string }>> {
-    return this.authService.changePassword((req.user as { id: number }).id, changePasswordDto);
+    const userId = (req.user as { id: number }).id;
+    this.logger.log(`Password change request for user ID: ${userId}`);
+    try {
+      const result = await this.authService.changePassword(userId, changePasswordDto);
+      this.logger.log(`Password changed successfully for user ID: ${userId}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Password change failed for user ID: ${userId}`, error.stack);
+      throw error;
+    }
   }
 
   @Post('forgot-password')

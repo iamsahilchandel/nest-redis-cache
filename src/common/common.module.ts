@@ -1,6 +1,7 @@
 import { Module, Global } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ApiResponseInterceptor } from './api-response.interceptor';
+import { HttpLoggerInterceptor } from './http-logger.interceptor';
 
 @Global()
 @Module({
@@ -9,7 +10,10 @@ import { ApiResponseInterceptor } from './api-response.interceptor';
       provide: APP_INTERCEPTOR,
       useClass: ApiResponseInterceptor,
     },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: HttpLoggerInterceptor,
+    },
   ],
-  exports: [],
 })
 export class CommonModule {}
