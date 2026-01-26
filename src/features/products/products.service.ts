@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
 import { eq, and, like, gte, lte, desc, asc, sql, SQL } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../database/database.provider';
-import { products, Product, NewProduct } from '../../database/schemas/product.schema';
+import { DATABASE_CONNECTION } from '../../core/database/database.provider';
+import { products, Product, NewProduct } from '../../core/database/schemas/product.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { ApiResponseBuilder, ApiResponse } from '../../common/api-response';
 import { CreateProductDto, UpdateProductDto, ProductQueryDto } from './dto/product.dto';

@@ -24,7 +24,7 @@ import {
   ProductQueryDtoSwagger,
 } from './dto/product.dto';
 import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from './dto/product.dto';
-import type { Product } from '../../database/schemas/product.schema';
+import type { Product } from '../../core/database/schemas/product.schema';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';

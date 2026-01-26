@@ -6,7 +6,7 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
-import { DatabaseModule } from '../../database/database.module';
+import { DatabaseModule } from '../../core/database/database.module';
 import type { StringValue } from 'ms';
 
 @Module({
