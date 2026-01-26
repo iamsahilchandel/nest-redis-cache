@@ -1,98 +1,327 @@
+# NestJS Redis Cache API
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A modern, scalable NestJS API with PostgreSQL database, Drizzle ORM, JWT authentication, and comprehensive security features.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 📋 Table of Contents
 
-## Description
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Getting Started](#-getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Environment Configuration](#environment-configuration)
+- [Database](#-database)
+  - [Database Migrations](#database-migrations)
+- [Running the Application](#-running-the-application)
+- [Available Scripts](#-available-scripts)
+- [API Documentation](#-api-documentation)
+- [Testing](#-testing)
+- [Security Features](#-security-features)
+- [License](#-license)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## ✨ Features
 
-```bash
-$ pnpm install
+- **Authentication & Authorization** - JWT-based authentication with role-based access control (buyer, seller, admin)
+- **Database Management** - PostgreSQL with Drizzle ORM for type-safe database operations
+- **API Documentation** - Swagger/OpenAPI integration for interactive API documentation
+- **Rate Limiting** - Built-in request throttling to prevent abuse
+- **Security** - Helmet, CORS, CSRF protection, and API key authentication
+- **Validation** - Request validation using Zod schemas
+- **Product Management** - Full CRUD operations for product catalog
+
+---
+
+## 🛠 Tech Stack
+
+| Technology                                | Purpose           |
+| ----------------------------------------- | ----------------- |
+| [NestJS](https://nestjs.com/)             | Backend framework |
+| [PostgreSQL](https://www.postgresql.org/) | Database          |
+| [Drizzle ORM](https://orm.drizzle.team/)  | Type-safe ORM     |
+| [Zod](https://zod.dev/)                   | Schema validation |
+| [Passport](http://www.passportjs.org/)    | Authentication    |
+| [JWT](https://jwt.io/)                    | Token-based auth  |
+| [Swagger](https://swagger.io/)            | API documentation |
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── bootstrap/       → Add guards, interceptors, filters, and decorators here
+├── common/          → Add shared utilities, helpers, and services here
+├── database/
+│   └── schemas/     → Add Drizzle table schemas here (*.schema.ts)
+├── features/        → Add feature modules here (auth, products, orders, etc.)
+└── main.ts          → Application entry point
 ```
 
-## Compile and run the project
+**Where to add new code:**
 
-```bash
-# development
-$ pnpm run start
+| What you're creating  | Where to add it                                          |
+| --------------------- | -------------------------------------------------------- |
+| New feature module    | `src/features/<feature-name>/`                           |
+| Database schema       | `src/database/schemas/<name>.schema.ts`                  |
+| Guards / Interceptors | `src/bootstrap/guards/` or `src/bootstrap/interceptors/` |
+| Shared utilities      | `src/common/`                                            |
+| DTOs / Validators     | Inside your feature module folder                        |
 
-# watch mode
-$ pnpm run start:dev
+---
 
-# production mode
-$ pnpm run start:prod
+## 🚀 Getting Started
+
+### Prerequisites
+
+Make sure you have the following installed:
+
+- **Node.js** (v18 or higher)
+- **pnpm** (recommended) or npm/yarn
+- **PostgreSQL** (v14 or higher)
+- **Redis** (optional, for caching)
+
+### Installation
+
+1. **Clone the repository**
+
+   ```bash
+   git clone <repository-url>
+   cd "Nest.js Cache"
+   ```
+
+2. **Install dependencies**
+
+   ```bash
+   pnpm install
+   ```
+
+3. **Create environment file**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. **Configure your environment variables** (see [Environment Configuration](#environment-configuration))
+
+5. **Set up the database** (see [Database Migrations](#database-migrations))
+
+6. **Start the application**
+
+   ```bash
+   pnpm run start:dev
+   ```
+
+### Environment Configuration
+
+Create a `.env` file in the root directory based on `.env.example`:
+
+```env
+# Server Configuration
+NODE_ENV=development
+SERVER_PORT=3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+# Database & Cache
+DATABASE_URL=postgresql://username:password@localhost:5432/redis_cache_nest
+REDIS_URL=redis://localhost:6379
+
+# Authentication & Security
+JWT_SECRET=your_jwt_secret_here
+COOKIE_SECRET=your_cookie_secret_here
+API_KEY=your_api_key_here
+
+# Rate Limiting (optional)
+RATE_LIMIT_WINDOW_MS=60000
+RATE_LIMIT_MAX=100
 ```
 
-## Run tests
+> **💡 Tip:** Generate secure secrets using:
+>
+> ```bash
+> openssl rand -base64 32
+> ```
+
+---
+
+## 🗄 Database
+
+This project uses **PostgreSQL** with **Drizzle ORM** for type-safe database operations.
+
+Database schemas are located in `src/database/schemas/`. Check these files for detailed table structures.
+
+### Database Migrations
+
+Drizzle Kit is used for database migrations. Configuration can be found in `drizzle.config.ts`.
+
+#### Migration Commands
+
+| Command                | Description                                         |
+| ---------------------- | --------------------------------------------------- |
+| `pnpm run db:generate` | Generate migration files from schema changes        |
+| `pnpm run db:migrate`  | Apply pending migrations to the database            |
+| `pnpm run db:push`     | Push schema directly to database (development only) |
+| `pnpm run db:studio`   | Open Drizzle Studio (visual database browser)       |
+| `pnpm run db:drop`     | Drop a migration                                    |
+
+#### Step-by-Step Migration Guide
+
+1. **Make changes to your schema files** in `src/database/schemas/`
+
+2. **Generate migration files**
+
+   ```bash
+   pnpm run db:generate
+   ```
+
+   This will create SQL migration files in `src/database/migrations/`
+
+3. **Review the generated migration** (recommended)
+
+4. **Apply the migration**
+
+   ```bash
+   pnpm run db:migrate
+   ```
+
+5. **Verify changes** using Drizzle Studio
+
+   ```bash
+   pnpm run db:studio
+   ```
+
+> **⚠️ Warning:** Use `db:push` only in development! For production, always use `db:generate` followed by `db:migrate`.
+
+---
+
+## ▶️ Running the Application
 
 ```bash
-# unit tests
-$ pnpm run test
+# Development (with hot-reload)
+pnpm run start:dev
 
-# e2e tests
-$ pnpm run test:e2e
+# Debug mode
+pnpm run start:debug
 
-# test coverage
-$ pnpm run test:cov
+# Production mode
+pnpm run build
+pnpm run start:prod
 ```
 
-## Deployment
+The application will be available at `http://localhost:3000` (or your configured `SERVER_PORT`).
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 📜 Available Scripts
+
+All scripts can be run using `pnpm run <script-name>`:
+
+### Application Scripts
+
+| Script        | Command                      | Description                          |
+| ------------- | ---------------------------- | ------------------------------------ |
+| `build`       | `nest build`                 | Build the application for production |
+| `start`       | `nest start`                 | Start the application                |
+| `start:dev`   | `nest start --watch`         | Start with hot-reload (development)  |
+| `start:debug` | `nest start --debug --watch` | Start in debug mode with hot-reload  |
+| `start:prod`  | `node dist/main`             | Start production build               |
+
+### Database Scripts
+
+| Script        | Command                | Description                            |
+| ------------- | ---------------------- | -------------------------------------- |
+| `db:generate` | `drizzle-kit generate` | Generate migration from schema changes |
+| `db:migrate`  | `drizzle-kit migrate`  | Apply migrations to database           |
+| `db:push`     | `drizzle-kit push`     | Push schema directly to database       |
+| `db:studio`   | `drizzle-kit studio`   | Open visual database browser           |
+| `db:drop`     | `drizzle-kit drop`     | Drop a migration                       |
+
+### Code Quality Scripts
+
+| Script   | Command                                         | Description               |
+| -------- | ----------------------------------------------- | ------------------------- |
+| `format` | `prettier --write "src/**/*.ts" "test/**/*.ts"` | Format code with Prettier |
+| `lint`   | `eslint "{src,apps,libs,test}/**/*.ts" --fix`   | Lint and fix code         |
+
+### Testing Scripts
+
+| Script       | Command                              | Description                    |
+| ------------ | ------------------------------------ | ------------------------------ |
+| `test`       | `jest`                               | Run unit tests                 |
+| `test:watch` | `jest --watch`                       | Run tests in watch mode        |
+| `test:cov`   | `jest --coverage`                    | Run tests with coverage report |
+| `test:debug` | `node --inspect-brk...`              | Run tests in debug mode        |
+| `test:e2e`   | `jest --config ./test/jest-e2e.json` | Run end-to-end tests           |
+
+---
+
+## 📚 API Documentation
+
+Swagger API documentation is available at:
+
+```
+http://localhost:3000/api
+```
+
+> **Note:** You may need to provide an API key to access the documentation. See [Security Features](#-security-features).
+
+---
+
+## 🧪 Testing
 
 ```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
+# Run unit tests
+pnpm run test
+
+# Run tests in watch mode
+pnpm run test:watch
+
+# Generate coverage report
+pnpm run test:cov
+
+# Run e2e tests
+pnpm run test:e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+---
 
-## Resources
+## 🔒 Security Features
 
-Check out a few resources that may come in handy when working with NestJS:
+This application implements several security measures:
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+| Feature                | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| **JWT Authentication** | Secure token-based authentication                |
+| **API Key Guard**      | Global API key validation for all endpoints      |
+| **Rate Limiting**      | Request throttling (default: 10 requests/minute) |
+| **Helmet**             | Security headers middleware                      |
+| **CORS**               | Configurable Cross-Origin Resource Sharing       |
+| **CSRF Protection**    | Cross-Site Request Forgery protection            |
+| **Password Hashing**   | Bcrypt for secure password storage               |
+| **Role-Based Access**  | User roles: `buyer`, `seller`, `admin`           |
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## 📄 License
 
-## Stay in touch
+This project is [UNLICENSED](LICENSE).
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
 
-## License
+## 🤝 Contributing
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+---
+
+<p align="center">Made with ❤️ using NestJS</p>
