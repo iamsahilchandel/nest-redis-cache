@@ -14,7 +14,7 @@ import {
 } from './middleware';
 
 // Swagger configuration
-import { configureSwagger } from './swagger.config';
+import { configureSwagger } from './swagger/swagger.config';
 
 /**
  * Bootstrap the NestJS application
