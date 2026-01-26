@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { timingSafeEqual } from 'crypto';
@@ -13,33 +13,30 @@ import { timingSafeEqual } from 'crypto';
  */
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
-  constructor(private configService: ConfigService) {}
+  private readonly logger = new Logger(ApiKeyGuard.name);
+  private readonly validApiKey: string;
+
+  constructor(private configService: ConfigService) {
+    if (!this.configService.get<string>('API_KEY')) {
+      this.logger.error('API_KEY is not defined');
+    }
+
+    this.validApiKey = this.configService.get<string>('API_KEY')!;
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    const apiKey = request.headers['x-api-key'] as string;
+    const path = request.path;
 
-    // Skip API key check for Swagger UI routes (Swagger is at /api, not /api/v1)
-    // Swagger routes: /api, /api-json, /api-yaml, /api/static/*
-    const isSwaggerRoute =
-      request.url.startsWith('/api-json') ||
-      request.url.startsWith('/api-yaml') ||
-      request.url === '/api' ||
-      (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1'));
+    // Public routes
+    const publicRoutes = ['/', '/api', '/api-json', '/api-yaml', '/api/static/*'];
 
-    if (isSwaggerRoute) {
-      // In production, Swagger is protected by CsrfGuard which requires API key
-      if (!isProduction) {
-        return true; // Allow in development
-      }
-      // In production, let CsrfGuard handle Swagger protection
+    if (publicRoutes.some((p) => path.startsWith(p))) {
       return true;
     }
 
-    const apiKey = request.headers['x-api-key'] as string | undefined;
-    const validApiKey = this.configService.get<string>('API_KEY');
-
-    if (!this.validateApiKey(apiKey, validApiKey)) {
+    if (!this.validateApiKey(apiKey, this.validApiKey)) {
       throw new UnauthorizedException('Invalid or missing API key');
     }
 

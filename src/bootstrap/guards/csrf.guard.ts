@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
 import { timingSafeEqual } from 'crypto';
@@ -14,6 +14,7 @@ import { timingSafeEqual } from 'crypto';
  */
 @Injectable()
 export class CsrfGuard implements CanActivate {
+  private readonly logger = new Logger(CsrfGuard.name);
   constructor(private configService: ConfigService) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -25,20 +26,18 @@ export class CsrfGuard implements CanActivate {
     const apiKey = request.headers['x-api-key'] as string | undefined;
     const validApiKey = this.configService.get<string>('API_KEY');
 
+    const path = request.path;
+
     // Skip CSRF for Swagger UI routes (Swagger is at /api, not /api/v1)
-    // Swagger routes: /api, /api-json, /api-yaml, /api/static/*
-    const isSwaggerRoute =
-      request.url.startsWith('/api-json') ||
-      request.url.startsWith('/api-yaml') ||
-      request.url === '/api' ||
-      (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1'));
+    const swaggerRoutes = ['/api', '/api-json', '/api-yaml', '/api/static/*'];
+    const isSwaggerRoute = swaggerRoutes.some((route) => path.startsWith(route));
 
     if (isSwaggerRoute) {
       // In production, require API key for Swagger access
       if (isProduction && !this.validateApiKey(apiKey, validApiKey)) {
         throw new ForbiddenException('Swagger UI is disabled in production or requires valid API key');
       }
-      return true;
+      return false;
     }
 
     // If CSRF is disabled via environment variable, allow (not recommended for production)
@@ -46,23 +45,20 @@ export class CsrfGuard implements CanActivate {
       if (isProduction) {
         throw new ForbiddenException('CSRF protection cannot be disabled in production');
       }
-      return true;
+      return false;
     }
 
     // Skip CSRF for safe HTTP methods
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
-      return true;
+      return false;
     }
 
     // Bypass CSRF only for API endpoints with valid API key
     // This allows API clients to work while maintaining security for browser-based requests
     if (apiKey && this.validateApiKey(apiKey, validApiKey)) {
-      // Additional check: Only bypass for API v1 routes (not for form submissions)
-      const isApiRoute = request.url.startsWith('/api/v1');
+      const isApiRoute = path.startsWith('/api/v1');
 
-      if (isApiRoute) {
-        return true;
-      }
+      if (isApiRoute) return false;
     }
 
     // For all other requests, require CSRF token

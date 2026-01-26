@@ -24,11 +24,9 @@ export async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
 
   const configService = app.get(ConfigService);
+
   const NODE_ENV = configService.get<string>('NODE_ENV');
-  const ALLOWED_ORIGINS = configService.get<string>('ALLOWED_ORIGINS');
-  const CSRF_SECRET = configService.get<string>('CSRF_SECRET');
   const SERVER_PORT = configService.get<string>('SERVER_PORT') || '3000';
-  const API_KEY = configService.get<string>('API_KEY');
 
   // Log application startup
   logger.log(`🚀 Starting application in ${NODE_ENV || 'development'} mode...`);
@@ -40,9 +38,9 @@ export async function bootstrap(): Promise<void> {
   // Configure middleware
   configureHelmet(app);
   configureCompression(app);
-  configureCors(app, { allowedOrigins: ALLOWED_ORIGINS, nodeEnv: NODE_ENV });
-  configureCookieParser(app, { csrfSecret: CSRF_SECRET, nodeEnv: NODE_ENV }, logger);
-  configureCsrf(app, { nodeEnv: NODE_ENV, apiKey: API_KEY }, logger);
+  configureCors(app);
+  configureCookieParser(app);
+  configureCsrf(app);
 
   // Configure Swagger documentation
   configureSwagger(app, SERVER_PORT);

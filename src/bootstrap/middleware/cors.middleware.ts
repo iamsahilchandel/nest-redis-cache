@@ -1,17 +1,14 @@
 import { INestApplication } from '@nestjs/common';
-
-export interface CorsOptions {
-  allowedOrigins: string | undefined;
-  nodeEnv: string | undefined;
-}
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Configure CORS middleware
  */
-export function configureCors(app: INestApplication, options: CorsOptions): void {
-  const { allowedOrigins: allowedOriginsEnv, nodeEnv } = options;
-
-  const allowedOrigins = allowedOriginsEnv?.split(',') || (nodeEnv === 'production' ? [] : ['http://localhost:3000']);
+export function configureCors(app: INestApplication): void {
+  const configService = app.get(ConfigService);
+  const allowedOrigins =
+    configService.get<string>('ALLOWED_ORIGINS')?.split(',') ||
+    (configService.get<string>('NODE_ENV') === 'production' ? [] : ['http://localhost:3000']);
 
   app.enableCors({
     origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {

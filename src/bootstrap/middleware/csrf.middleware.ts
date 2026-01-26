@@ -2,11 +2,7 @@ import { INestApplication, Logger } from '@nestjs/common';
 import csurf from 'csurf';
 import type { Request, Response, NextFunction } from 'express';
 import { timingSafeEqual } from 'crypto';
-
-export interface CsrfOptions {
-  nodeEnv: string | undefined;
-  apiKey: string | undefined;
-}
+import { ConfigService } from '@nestjs/config';
 
 /**
  * Constant-time API key comparison to prevent timing attacks.
@@ -38,8 +34,11 @@ function validateApiKey(providedKey: string | undefined, validKey: string | unde
 /**
  * Configure CSRF protection middleware
  */
-export function configureCsrf(app: INestApplication, options: CsrfOptions, logger: Logger): void {
-  const { nodeEnv, apiKey } = options;
+export function configureCsrf(app: INestApplication): void {
+  const logger = new Logger('CSRF');
+  const configService = app.get(ConfigService);
+  const nodeEnv = configService.get<string>('NODE_ENV');
+  const apiKey = configService.get<string>('API_KEY');
 
   // CSRF protection middleware with secure configuration
   const csrfMiddleware = csurf({
@@ -55,11 +54,9 @@ export function configureCsrf(app: INestApplication, options: CsrfOptions, logge
   app.use((req: Request, res: Response, next: NextFunction) => {
     // Skip CSRF for Swagger UI routes (Swagger is at /api, not /api/v1)
     // Swagger routes: /api, /api-json, /api-yaml, /api/static/*
-    const isSwaggerRoute =
-      req.url.startsWith('/api-json') ||
-      req.url.startsWith('/api-yaml') ||
-      req.url === '/api' ||
-      (req.url.startsWith('/api/') && !req.url.startsWith('/api/v1'));
+    const requestUrl = req.url;
+    const swaggerRoutes = ['/api-json', '/api-yaml', '/api', '/api/static'];
+    const isSwaggerRoute = swaggerRoutes.some((route) => requestUrl.startsWith(route));
 
     if (isSwaggerRoute) return next(); // In production, Swagger access is controlled by CsrfGuard
 
@@ -68,8 +65,6 @@ export function configureCsrf(app: INestApplication, options: CsrfOptions, logge
 
     // Check if valid API key is provided (for API clients)
     const providedApiKey = req.headers['x-api-key'] as string | undefined;
-
-    // Use constant-time comparison to prevent timing attacks
     const isValidApiKey = validateApiKey(providedApiKey, apiKey);
 
     if (nodeEnv !== 'production' && providedApiKey) {

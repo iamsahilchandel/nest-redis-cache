@@ -38,6 +38,6 @@ export class AppController {
   })
   getCsrfToken(@Req() req: Request): { csrfToken: string } {
     this.logger.log(`CSRF token requested from IP: ${req.ip}`);
-    return { csrfToken: req.csrfToken() };
+    return { csrfToken: req.headers['csrf-token'] as string };
   }
 }
