@@ -1,8 +1,36 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-import { Controller, Post, Body, UseGuards, Get, Request, Put, HttpCode, HttpStatus, UsePipes, Logger } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Request,
+  Put,
+  HttpCode,
+  HttpStatus,
+  UsePipes,
+  Logger,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDtoSchema, LoginDtoSchema, ChangePasswordDtoSchema, ForgotPasswordDtoSchema, ResetPasswordDtoSchema, type RegisterDto, type LoginDto, type ChangePasswordDto, type ForgotPasswordDto, type ResetPasswordDto, RegisterDtoSwagger, LoginDtoSwagger, ChangePasswordDtoSwagger, ForgotPasswordDtoSwagger, ResetPasswordDtoSwagger } from './auth.dto';
+import {
+  RegisterDtoSchema,
+  LoginDtoSchema,
+  ChangePasswordDtoSchema,
+  ForgotPasswordDtoSchema,
+  ResetPasswordDtoSchema,
+  type RegisterDto,
+  type LoginDto,
+  type ChangePasswordDto,
+  type ForgotPasswordDto,
+  type ResetPasswordDto,
+  RegisterDtoSwagger,
+  LoginDtoSwagger,
+  ChangePasswordDtoSwagger,
+  ForgotPasswordDtoSwagger,
+  ResetPasswordDtoSwagger,
+} from './auth.dto';
 import type { AuthData } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RolesGuard } from './roles.guard';
@@ -107,17 +135,6 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   resetPassword(@Body() resetPasswordDto: ResetPasswordDto): ApiResponseType<{ message: string }> {
     return this.authService.resetPassword(resetPasswordDto.token, resetPasswordDto.newPassword);
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Logout user (client-side token removal)' })
-  @ApiResponse({ status: 200, description: 'Logged out successfully' })
-  logout(): ApiResponseType<{ message: string }> {
-    // Since JWT is stateless, logout is handled client-side by removing the token
-    return this.authService.logout();
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

@@ -126,7 +126,10 @@ export class AuthService {
     return user || null;
   }
 
-  async changePassword(userId: number, changePasswordDto: ChangePasswordDto): Promise<ApiResponse<{ message: string }>> {
+  async changePassword(
+    userId: number,
+    changePasswordDto: ChangePasswordDto,
+  ): Promise<ApiResponse<{ message: string }>> {
     const { currentPassword, newPassword } = changePasswordDto;
 
     // Find user
@@ -147,10 +150,7 @@ export class AuthService {
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await this.db
-      .update(users)
-      .set({ password: hashedNewPassword, updatedAt: new Date() })
-      .where(eq(users.id, userId));
+    await this.db.update(users).set({ password: hashedNewPassword, updatedAt: new Date() }).where(eq(users.id, userId));
 
     return ApiResponseBuilder.success({ message: 'Password changed successfully' });
   }
@@ -184,12 +184,9 @@ export class AuthService {
     void newPassword;
 
     // For now, return an error since we don't have token management implemented
-    return ApiResponseBuilder.error('Password reset functionality not fully implemented', 'NOT_IMPLEMENTED') as ApiResponse<{ message: string }>;
-  }
-
-  logout(): ApiResponse<{ message: string }> {
-    // Since JWT is stateless, logout is handled client-side
-    // In a real application with refresh tokens, you might want to blacklist the token
-    return ApiResponseBuilder.success({ message: 'Logged out successfully' });
+    return ApiResponseBuilder.error(
+      'Password reset functionality not fully implemented',
+      'NOT_IMPLEMENTED',
+    ) as ApiResponse<{ message: string }>;
   }
 }
