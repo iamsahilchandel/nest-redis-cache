@@ -2,10 +2,11 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { ApiKeyGuard } from './guards/api-key.guard';
+import { ApiKeyGuard } from './common/guards/api-key.guard';
 import { DatabaseModule } from './database/database.module';
-import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
+import { AuthModule } from './features/auth/auth.module';
+import { ProductsModule } from './features/products/products.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -14,6 +15,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot(),
     DatabaseModule,
     AuthModule,
+    ProductsModule,
     CommonModule,
     ThrottlerModule.forRoot([
       {

@@ -3,8 +3,8 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { Inject } from '@nestjs/common';
-import { DATABASE_CONNECTION } from '../database/database.provider';
-import { users } from '../database/schemas/user.schema';
+import { DATABASE_CONNECTION } from '../../../database/database.provider';
+import { users } from '../../../database/schemas/user.schema';
 import { eq } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 

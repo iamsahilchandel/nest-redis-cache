@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto';
 
 /**
  * Secure API Key Guard
- * 
+ *
  * Security features:
  * - Constant-time comparison to prevent timing attacks
  * - Environment-based configuration
@@ -21,11 +21,12 @@ export class ApiKeyGuard implements CanActivate {
 
     // Skip API key check for Swagger UI routes (Swagger is at /api, not /api/v1)
     // Swagger routes: /api, /api-json, /api-yaml, /api/static/*
-    const isSwaggerRoute = (request.url.startsWith('/api-json') || 
-                            request.url.startsWith('/api-yaml') ||
-                            request.url === '/api' ||
-                            (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1')));
-    
+    const isSwaggerRoute =
+      request.url.startsWith('/api-json') ||
+      request.url.startsWith('/api-yaml') ||
+      request.url === '/api' ||
+      (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1'));
+
     if (isSwaggerRoute) {
       // In production, Swagger is protected by CsrfGuard which requires API key
       if (!isProduction) {

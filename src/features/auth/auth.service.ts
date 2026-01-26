@@ -3,11 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { Inject } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { DATABASE_CONNECTION } from '../database/database.provider';
-import { users, User, NewUser } from '../database/schemas/user.schema';
+import { DATABASE_CONNECTION } from '../../database/database.provider';
+import { users, User, NewUser } from '../../database/schemas/user.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { ApiResponseBuilder, ApiResponse } from '../common/api-response';
-import { RegisterDto, LoginDto, ChangePasswordDto } from './auth.dto';
+import { ApiResponseBuilder, ApiResponse } from '../../common/api-response';
+import { RegisterDto, LoginDto, ChangePasswordDto } from './dto/auth.dto';
 
 export interface AuthData {
   access_token: string;

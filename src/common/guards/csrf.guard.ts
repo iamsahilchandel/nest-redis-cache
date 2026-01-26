@@ -5,7 +5,7 @@ import { timingSafeEqual } from 'crypto';
 
 /**
  * Secure CSRF Guard
- * 
+ *
  * Security features:
  * - Constant-time comparison for API key validation (prevents timing attacks)
  * - Environment-based CSRF configuration
@@ -27,11 +27,12 @@ export class CsrfGuard implements CanActivate {
 
     // Skip CSRF for Swagger UI routes (Swagger is at /api, not /api/v1)
     // Swagger routes: /api, /api-json, /api-yaml, /api/static/*
-    const isSwaggerRoute = (request.url.startsWith('/api-json') || 
-                            request.url.startsWith('/api-yaml') ||
-                            request.url === '/api' ||
-                            (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1')));
-    
+    const isSwaggerRoute =
+      request.url.startsWith('/api-json') ||
+      request.url.startsWith('/api-yaml') ||
+      request.url === '/api' ||
+      (request.url.startsWith('/api/') && !request.url.startsWith('/api/v1'));
+
     if (isSwaggerRoute) {
       // In production, require API key for Swagger access
       if (isProduction && !this.validateApiKey(apiKey, validApiKey)) {
@@ -58,7 +59,7 @@ export class CsrfGuard implements CanActivate {
     if (apiKey && this.validateApiKey(apiKey, validApiKey)) {
       // Additional check: Only bypass for API v1 routes (not for form submissions)
       const isApiRoute = request.url.startsWith('/api/v1');
-      
+
       if (isApiRoute) {
         return true;
       }

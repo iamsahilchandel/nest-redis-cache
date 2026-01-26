@@ -30,13 +30,13 @@ import {
   ChangePasswordDtoSwagger,
   ForgotPasswordDtoSwagger,
   ResetPasswordDtoSwagger,
-} from './auth.dto';
+} from './dto/auth.dto';
 import type { AuthData } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { RolesGuard } from './roles.guard';
-import { Roles } from './roles.decorator';
-import { ZodValidationPipe } from '../common/zod-validation.pipe';
-import type { ApiResponse as ApiResponseType } from '../common/api-response';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RolesGuard } from './guards/roles.guard';
+import { Roles } from './decorators/roles.decorator';
+import { ZodValidationPipe } from '../../common/zod-validation.pipe';
+import type { ApiResponse as ApiResponseType } from '../../common/api-response';
 
 @ApiTags('auth')
 @Controller('auth')
