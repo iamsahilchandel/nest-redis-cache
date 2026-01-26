@@ -31,12 +31,17 @@ export const ResetPasswordDtoSchema = z.object({
   newPassword: z.string().min(6),
 });
 
+export const RefreshTokenDtoSchema = z.object({
+  refreshToken: z.string(),
+});
+
 // TypeScript types
 export type RegisterDto = z.infer<typeof RegisterDtoSchema>;
 export type LoginDto = z.infer<typeof LoginDtoSchema>;
 export type ChangePasswordDto = z.infer<typeof ChangePasswordDtoSchema>;
 export type ForgotPasswordDto = z.infer<typeof ForgotPasswordDtoSchema>;
 export type ResetPasswordDto = z.infer<typeof ResetPasswordDtoSchema>;
+export type RefreshTokenDto = z.infer<typeof RefreshTokenDtoSchema>;
 
 // Swagger DTOs for API documentation
 export class RegisterDtoSwagger {
@@ -89,4 +94,12 @@ export class ResetPasswordDtoSwagger {
 
   @ApiProperty({ description: 'New password (minimum 6 characters)', example: 'newPassword123', minLength: 6 })
   newPassword!: string;
+}
+
+export class RefreshTokenDtoSwagger {
+  @ApiProperty({
+    description: 'Refresh token received during login',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
+  refreshToken!: string;
 }

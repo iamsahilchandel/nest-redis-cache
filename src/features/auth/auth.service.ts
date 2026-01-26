@@ -1,16 +1,20 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
+import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
 import { DATABASE_CONNECTION } from '../../database/database.provider';
 import { users, User, NewUser } from '../../database/schemas/user.schema';
+import { refreshTokens, NewRefreshToken } from '../../database/schemas/refresh-token.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { ApiResponseBuilder, ApiResponse } from '../../common/api-response';
 import { RegisterDto, LoginDto, ChangePasswordDto } from './dto/auth.dto';
+import type { StringValue } from 'ms';
 
 export interface AuthData {
   access_token: string;
+  refresh_token: string;
   user: {
     id: number;
     email: string;
@@ -20,13 +24,88 @@ export interface AuthData {
   };
 }
 
+interface TokenPayload {
+  sub: number;
+  email: string;
+  role: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: PostgresJsDatabase,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
+
+  private async generateTokens(user: {
+    id: number;
+    email: string;
+    role: string;
+  }): Promise<{ accessToken: string; refreshToken: string }> {
+    const payload: TokenPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
+
+    // Generate access token
+    const accessToken = this.jwtService.sign(payload);
+
+    // Generate refresh token with separate secret and expiry
+    const refreshTokenExpiry = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRY') ?? '7d';
+
+    const options: JwtSignOptions = {
+      secret: this.configService.get<string>('JWT_REFRESH_TOKEN_SECRET'),
+      expiresIn: refreshTokenExpiry as StringValue,
+    };
+    const refreshToken = this.jwtService.sign(payload, options);
+
+    // Hash and store refresh token in database
+    const saltRounds = 10;
+    const tokenHash = await bcrypt.hash(refreshToken, saltRounds);
+
+    // Calculate expiry date
+    const expiryString = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRY', '7d');
+    const expiresAt = this.calculateExpiryDate(expiryString);
+
+    const newRefreshToken: NewRefreshToken = {
+      userId: user.id,
+      tokenHash,
+      expiresAt,
+    };
+
+    await this.db.insert(refreshTokens).values(newRefreshToken);
+
+    return { accessToken, refreshToken };
+  }
+
+  private calculateExpiryDate(expiry: string): Date {
+    const now = new Date();
+    const match = expiry.match(/^(\d+)([smhd])$/);
+
+    if (!match) {
+      // Default to 7 days if parsing fails
+      return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+
+    const value = parseInt(match[1], 10);
+    const unit = match[2];
+
+    switch (unit) {
+      case 's':
+        return new Date(now.getTime() + value * 1000);
+      case 'm':
+        return new Date(now.getTime() + value * 60 * 1000);
+      case 'h':
+        return new Date(now.getTime() + value * 60 * 60 * 1000);
+      case 'd':
+        return new Date(now.getTime() + value * 24 * 60 * 60 * 1000);
+      default:
+        return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    }
+  }
 
   async register(registerDto: RegisterDto): Promise<ApiResponse<AuthData>> {
     const { email, password, firstName, lastName, role = 'buyer', phone, address } = registerDto;
@@ -55,16 +134,16 @@ export class AuthService {
 
     const [createdUser] = await this.db.insert(users).values(newUser).returning();
 
-    // Generate JWT token
-    const payload = {
-      sub: createdUser.id,
+    // Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens({
+      id: createdUser.id,
       email: createdUser.email,
       role: createdUser.role,
-    };
-    const access_token = this.jwtService.sign(payload);
+    });
 
     const authData: AuthData = {
-      access_token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: createdUser.id,
         email: createdUser.email,
@@ -98,12 +177,16 @@ export class AuthService {
       return ApiResponseBuilder.error('Account is deactivated', 'ACCOUNT_DEACTIVATED');
     }
 
-    // Generate JWT token
-    const payload = { sub: user.id, email: user.email, role: user.role };
-    const access_token = this.jwtService.sign(payload);
+    // Generate tokens
+    const { accessToken, refreshToken } = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
 
     const authData: AuthData = {
-      access_token,
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user.id,
         email: user.email,
@@ -118,6 +201,45 @@ export class AuthService {
       { userId: user.id, loginTime: new Date().toISOString() },
       'Login successful',
     );
+  }
+
+  async refreshTokens(
+    userId: number,
+    refreshTokenId: number,
+  ): Promise<ApiResponse<{ access_token: string; refresh_token: string }>> {
+    // Find user
+    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
+
+    if (!user) {
+      return ApiResponseBuilder.error('User not found', 'USER_NOT_FOUND');
+    }
+
+    if (!user.isActive) {
+      return ApiResponseBuilder.error('Account is deactivated', 'ACCOUNT_DEACTIVATED');
+    }
+
+    // Revoke the old refresh token
+    await this.db.update(refreshTokens).set({ isRevoked: true }).where(eq(refreshTokens.id, refreshTokenId));
+
+    // Generate new tokens
+    const { accessToken, refreshToken } = await this.generateTokens({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    return ApiResponseBuilder.success(
+      { access_token: accessToken, refresh_token: refreshToken },
+      undefined,
+      'Tokens refreshed successfully',
+    );
+  }
+
+  async logout(userId: number): Promise<ApiResponse<{ message: string }>> {
+    // Revoke all refresh tokens for the user
+    await this.db.update(refreshTokens).set({ isRevoked: true }).where(eq(refreshTokens.userId, userId));
+
+    return ApiResponseBuilder.success({ message: 'Logged out successfully' });
   }
 
   async validateUser(userId: number): Promise<User | null> {
@@ -151,6 +273,9 @@ export class AuthService {
 
     // Update password
     await this.db.update(users).set({ password: hashedNewPassword, updatedAt: new Date() }).where(eq(users.id, userId));
+
+    // Revoke all refresh tokens on password change for security
+    await this.db.update(refreshTokens).set({ isRevoked: true }).where(eq(refreshTokens.userId, userId));
 
     return ApiResponseBuilder.success({ message: 'Password changed successfully' });
   }

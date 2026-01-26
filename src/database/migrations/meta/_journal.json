@@ -8,6 +8,13 @@
       "when": 1769438916412,
       "tag": "0000_added-user-and-products",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1769440799068,
+      "tag": "0001_added-refresh-token-table",
+      "breakpoints": true
     }
   ]
 }

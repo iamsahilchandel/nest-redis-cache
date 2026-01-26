@@ -20,19 +20,23 @@ import {
   ChangePasswordDtoSchema,
   ForgotPasswordDtoSchema,
   ResetPasswordDtoSchema,
+  RefreshTokenDtoSchema,
   type RegisterDto,
   type LoginDto,
   type ChangePasswordDto,
   type ForgotPasswordDto,
   type ResetPasswordDto,
+  type RefreshTokenDto,
   RegisterDtoSwagger,
   LoginDtoSwagger,
   ChangePasswordDtoSwagger,
   ForgotPasswordDtoSwagger,
   ResetPasswordDtoSwagger,
+  RefreshTokenDtoSwagger,
 } from './dto/auth.dto';
 import type { AuthData } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { ZodValidationPipe } from '../../common/zod-validation.pipe';
@@ -78,6 +82,51 @@ export class AuthController {
       return result;
     } catch (error) {
       this.logger.warn(`Login failed for email: ${loginDto.email} - ${error.message}`);
+      throw error;
+    }
+  }
+
+  @Post('refresh')
+  @UseGuards(JwtRefreshGuard)
+  @UsePipes(new ZodValidationPipe(RefreshTokenDtoSchema))
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiBody({ type: RefreshTokenDtoSwagger })
+  @ApiResponse({ status: 200, description: 'Tokens refreshed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
+  async refresh(
+    @Request() req: any,
+    @Body() _refreshTokenDto: RefreshTokenDto,
+  ): Promise<ApiResponseType<{ access_token: string; refresh_token: string }>> {
+    const userId = req.user?.id as number;
+    const refreshTokenId = req.user?.refreshTokenId as number;
+    this.logger.log(`Token refresh request for user ID: ${userId}`);
+    try {
+      const result = await this.authService.refreshTokens(userId, refreshTokenId);
+      this.logger.log(`Tokens refreshed successfully for user ID: ${userId}`);
+      return result;
+    } catch (error) {
+      this.logger.warn(`Token refresh failed for user ID: ${userId} - ${error.message}`);
+      throw error;
+    }
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Logout user and revoke all refresh tokens' })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async logout(@Request() req: any): Promise<ApiResponseType<{ message: string }>> {
+    const userId = req.user?.id as number;
+    this.logger.log(`Logout request for user ID: ${userId}`);
+    try {
+      const result = await this.authService.logout(userId);
+      this.logger.log(`User logged out successfully: ${userId}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Logout failed for user ID: ${userId}`, error.stack);
       throw error;
     }
   }
