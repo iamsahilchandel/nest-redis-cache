@@ -11,6 +11,7 @@ import {
   configureCors,
   configureCookieParser,
   configureCsrf,
+  configureRateLimit,
 } from './middleware';
 
 // Swagger configuration
@@ -41,6 +42,7 @@ export async function bootstrap(): Promise<void> {
   configureCors(app);
   configureCookieParser(app);
   configureCsrf(app);
+  configureRateLimit(app);
 
   // Configure Swagger documentation
   configureSwagger(app, SERVER_PORT);
