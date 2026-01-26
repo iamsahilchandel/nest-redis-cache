@@ -1,10 +1,12 @@
-import { Injectable, Inject, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ConflictException, Logger } from '@nestjs/common';
 import { eq, and, like, gte, lte, desc, asc, sql, SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../core/database/database.provider';
 import { products, Product, NewProduct } from '../../core/database/schemas/product.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { ApiResponseBuilder, ApiResponse } from '../../common/api-response';
 import { CreateProductDto, UpdateProductDto, ProductQueryDto } from './dto/product.dto';
+import { CacheService } from '../../common/cache/cache.service';
+import { CacheKeys, CacheTags, CacheTTL, InvalidationKeys, hashQuery } from '../../common/cache/cache.keys';
 
 export interface PaginatedProducts {
   products: Product[];
@@ -16,14 +18,14 @@ export interface PaginatedProducts {
 
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: PostgresJsDatabase,
+    private readonly cacheService: CacheService,
   ) {}
 
-  /**
-   * Create a new product
-   */
   async create(createProductDto: CreateProductDto, sellerId?: number): Promise<ApiResponse<Product>> {
     const { name, slug, images, tags, ...rest } = createProductDto;
 
@@ -48,13 +50,25 @@ export class ProductsService {
 
     const [createdProduct] = await this.db.insert(products).values(newProduct).returning();
 
+    // Invalidate related caches
+    await this.cacheService.invalidateMany(InvalidationKeys.PRODUCTS.onCreate as unknown as string[]);
+    this.logger.debug(`Created product ${createdProduct.id}, invalidated list caches`);
+
     return ApiResponseBuilder.success(createdProduct, { productId: createdProduct.id }, 'Product created successfully');
   }
 
-  /**
-   * Find all products with filtering and pagination
-   */
   async findAll(query: ProductQueryDto): Promise<ApiResponse<PaginatedProducts>> {
+    const queryHash = hashQuery(query as Record<string, unknown>);
+    const cacheKey = CacheKeys.PRODUCTS.all(queryHash);
+
+    return this.cacheService.getOrFetch(cacheKey, () => this.fetchAllFromDb(query), {
+      ttl: CacheTTL.PRODUCTS_LIST,
+      swrGrace: CacheTTL.SWR_GRACE,
+      tags: [CacheTags.PRODUCTS_LIST, CacheTags.PRODUCTS],
+    });
+  }
+
+  private async fetchAllFromDb(query: ProductQueryDto): Promise<ApiResponse<PaginatedProducts>> {
     const {
       page = 1,
       limit = 10,
@@ -72,7 +86,6 @@ export class ProductsService {
 
     const offset = (page - 1) * limit;
 
-    // Build where conditions
     const conditions: SQL[] = [];
 
     if (search) {
@@ -121,6 +134,8 @@ export class ProductsService {
     // Execute queries
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+    this.logger.debug('Fetching products from database...');
+
     const [productList, countResult] = await Promise.all([
       this.db.select().from(products).where(whereClause).orderBy(orderFn(sortColumn)).limit(limit).offset(offset),
       this.db
@@ -147,10 +162,19 @@ export class ProductsService {
     );
   }
 
-  /**
-   * Find one product by ID
-   */
   async findOne(id: number): Promise<ApiResponse<Product>> {
+    const cacheKey = CacheKeys.PRODUCTS.byId(id);
+
+    return this.cacheService.getOrFetch(cacheKey, () => this.fetchOneFromDb(id), {
+      ttl: CacheTTL.PRODUCT_SINGLE,
+      swrGrace: CacheTTL.SWR_GRACE,
+      tags: [CacheTags.PRODUCTS],
+    });
+  }
+
+  private async fetchOneFromDb(id: number): Promise<ApiResponse<Product>> {
+    this.logger.debug(`Fetching product ${id} from database...`);
+
     const [product] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
 
     if (!product) {
@@ -160,10 +184,19 @@ export class ProductsService {
     return ApiResponseBuilder.success(product, undefined, 'Product retrieved successfully');
   }
 
-  /**
-   * Find one product by slug
-   */
   async findBySlug(slug: string): Promise<ApiResponse<Product>> {
+    const cacheKey = CacheKeys.PRODUCTS.bySlug(slug);
+
+    return this.cacheService.getOrFetch(cacheKey, () => this.fetchBySlugFromDb(slug), {
+      ttl: CacheTTL.PRODUCT_SINGLE,
+      swrGrace: CacheTTL.SWR_GRACE,
+      tags: [CacheTags.PRODUCTS],
+    });
+  }
+
+  private async fetchBySlugFromDb(slug: string): Promise<ApiResponse<Product>> {
+    this.logger.debug(`Fetching product by slug "${slug}" from database...`);
+
     const [product] = await this.db.select().from(products).where(eq(products.slug, slug)).limit(1);
 
     if (!product) {
@@ -173,11 +206,34 @@ export class ProductsService {
     return ApiResponseBuilder.success(product, undefined, 'Product retrieved successfully');
   }
 
-  /**
-   * Update a product
-   */
+  async getFeatured(limit: number = 10): Promise<ApiResponse<Product[]>> {
+    const cacheKey = CacheKeys.PRODUCTS.featured(limit);
+
+    return this.cacheService.getOrFetch(cacheKey, () => this.fetchFeaturedFromDb(limit), {
+      ttl: CacheTTL.PRODUCTS_FEATURED,
+      swrGrace: CacheTTL.SWR_GRACE,
+      tags: [CacheTags.PRODUCT_FEATURED, CacheTags.PRODUCTS],
+    });
+  }
+
+  private async fetchFeaturedFromDb(limit: number): Promise<ApiResponse<Product[]>> {
+    this.logger.debug(`Fetching ${limit} featured products from database...`);
+
+    const featuredProducts = await this.db
+      .select()
+      .from(products)
+      .where(and(eq(products.isFeatured, true), eq(products.status, 'active')))
+      .orderBy(desc(products.createdAt))
+      .limit(limit);
+
+    return ApiResponseBuilder.success(
+      featuredProducts,
+      { count: featuredProducts.length },
+      'Featured products retrieved',
+    );
+  }
+
   async update(id: number, updateProductDto: UpdateProductDto): Promise<ApiResponse<Product>> {
-    // Check if product exists
     const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
 
     if (!existingProduct) {
@@ -214,45 +270,17 @@ export class ProductsService {
 
     const [updatedProduct] = await this.db.update(products).set(updateData).where(eq(products.id, id)).returning();
 
+    // Invalidate related caches (old slug + new slug if changed)
+    const invalidationKeys = InvalidationKeys.PRODUCTS.onUpdate(id, existingProduct.slug);
+    if (updateProductDto.slug && updateProductDto.slug !== existingProduct.slug) {
+      invalidationKeys.push(CacheKeys.PRODUCTS.bySlug(updateProductDto.slug));
+    }
+    await this.cacheService.invalidateMany(invalidationKeys);
+    this.logger.debug(`Updated product ${id}, invalidated ${invalidationKeys.length} cache keys`);
+
     return ApiResponseBuilder.success(updatedProduct, { productId: id }, 'Product updated successfully');
   }
 
-  /**
-   * Delete a product
-   */
-  async remove(id: number): Promise<ApiResponse<{ message: string }>> {
-    const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
-
-    if (!existingProduct) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-
-    await this.db.delete(products).where(eq(products.id, id));
-
-    return ApiResponseBuilder.success({ message: 'Product deleted successfully' }, { productId: id });
-  }
-
-  /**
-   * Get featured products
-   */
-  async getFeatured(limit: number = 10): Promise<ApiResponse<Product[]>> {
-    const featuredProducts = await this.db
-      .select()
-      .from(products)
-      .where(and(eq(products.isFeatured, true), eq(products.status, 'active')))
-      .orderBy(desc(products.createdAt))
-      .limit(limit);
-
-    return ApiResponseBuilder.success(
-      featuredProducts,
-      { count: featuredProducts.length },
-      'Featured products retrieved',
-    );
-  }
-
-  /**
-   * Update product inventory
-   */
   async updateInventory(id: number, quantity: number): Promise<ApiResponse<Product>> {
     const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
 
@@ -266,12 +294,29 @@ export class ProductsService {
       .where(eq(products.id, id))
       .returning();
 
+    // Invalidate related caches
+    await this.cacheService.invalidateMany(InvalidationKeys.PRODUCTS.onInventoryUpdate(id));
+    this.logger.debug(`Updated inventory for product ${id}, invalidated cache`);
+
     return ApiResponseBuilder.success(updatedProduct, { productId: id }, 'Inventory updated successfully');
   }
 
-  /**
-   * Generate URL-friendly slug from product name
-   */
+  async remove(id: number): Promise<ApiResponse<{ message: string }>> {
+    const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
+
+    if (!existingProduct) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    await this.db.delete(products).where(eq(products.id, id));
+
+    // Invalidate related caches
+    await this.cacheService.invalidateMany(InvalidationKeys.PRODUCTS.onDelete(id, existingProduct.slug));
+    this.logger.debug(`Deleted product ${id}, invalidated cache`);
+
+    return ApiResponseBuilder.success({ message: 'Product deleted successfully' }, { productId: id });
+  }
+
   private generateSlug(name: string): string {
     return name
       .toLowerCase()

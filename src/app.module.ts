@@ -16,9 +16,9 @@ import { AppService } from './app.service';
     ConfigModule.forRoot(),
     DatabaseModule,
     RedisModule,
+    CommonModule,
     AuthModule,
     ProductsModule,
-    CommonModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute
