@@ -177,8 +177,10 @@ Drizzle Kit is used for database migrations. Configuration can be found in `driz
 2. **Generate migration files**
 
    ```bash
-   pnpm run db:generate
+   pnpm run db:generate --name <migration_name>
    ```
+
+   The `--name` flag gives your migration a meaningful name (e.g., `--name add_orders_table`).
 
    This will create SQL migration files in `src/database/migrations/`
 
