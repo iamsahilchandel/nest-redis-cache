@@ -5,9 +5,12 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ApiKeyGuard } from './app/bootstrap/guards/api-key.guard';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
+import { EventBusModule } from './shared/infrastructure/events/event-bus.module';
 import { CommonModule } from './shared/common.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProductsModule } from './modules/products/products.module';
+import { HealthController } from './app/health/health.controller';
+import { CorrelationIdMiddleware } from './shared/middleware/correlation-id.middleware';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -16,6 +19,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot(),
     DatabaseModule,
     RedisModule,
+    EventBusModule,
     CommonModule,
     AuthModule,
     ProductsModule,
@@ -26,9 +30,10 @@ import { AppService } from './app.service';
       },
     ]),
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [
     AppService,
+    CorrelationIdMiddleware,
     {
       provide: APP_GUARD,
       useClass: ApiKeyGuard,

@@ -1,6 +1,7 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { REDIS_CLIENT } from '../../infrastructure/redis/redis.provider';
+import type { ICachePort } from '../../shared/domain/ports/cache.port';
 import Redis from 'ioredis';
 
 interface CacheEntry<T> {
@@ -17,7 +18,10 @@ interface GetOrFetchOptions {
 }
 
 /**
- * CacheService - Centralized caching with Single Flight, SWR, and Tag-based invalidation
+ * CacheService - Centralized caching with Single Flight, SWR, and Tag-based invalidation.
+ *
+ * Implements ICachePort so it can be injected via the CACHE_PORT token,
+ * keeping use-cases decoupled from the concrete Redis implementation.
  *
  * Features:
  * - Single Flight: Prevents thundering herd by coalescing concurrent requests
@@ -26,7 +30,7 @@ interface GetOrFetchOptions {
  * - Prefix-based invalidation: Invalidate all keys matching a prefix
  */
 @Injectable()
-export class CacheService {
+export class CacheService implements ICachePort {
   private readonly logger = new Logger(CacheService.name);
   private readonly inFlight = new Map<string, Promise<unknown>>();
   private readonly TAG_INDEX_PREFIX = 'cache:tags:';

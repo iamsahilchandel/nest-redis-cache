@@ -2,9 +2,6 @@ import { INestApplication, Logger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
 import { ConfigService } from '@nestjs/config';
 
-/**
- * Configure cookie parser middleware
- */
 export function configureCookieParser(app: INestApplication): void {
   const logger = new Logger('CookieParser');
   const configService = app.get(ConfigService);

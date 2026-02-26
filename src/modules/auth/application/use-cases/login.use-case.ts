@@ -1,12 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users } from '../../../../infrastructure/database/schemas/user.schema';
-import { refreshTokens, NewRefreshToken } from '../../../../infrastructure/database/schemas/refresh-token.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
+import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
 import { LoginDto } from '../../presentation/dto/auth.dto';
 import type { AuthData } from '../services/auth.service';
@@ -15,7 +14,8 @@ import type { StringValue } from 'ms';
 @Injectable()
 export class LoginUseCase {
   constructor(
-    @Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase,
+    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository,
+    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: IRefreshTokenRepository,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -24,8 +24,7 @@ export class LoginUseCase {
     const { email, password } = loginDto;
 
     // Find user
-    const [user] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
-
+    const user = await this.userRepo.findByEmail(email);
     if (!user) {
       return ApiResponseBuilder.error('Invalid credentials', 'INVALID_CREDENTIALS');
     }
@@ -88,8 +87,7 @@ export class LoginUseCase {
     const expiryString = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRY', '7d');
     const expiresAt = this.calculateExpiryDate(expiryString);
 
-    const newRefreshToken: NewRefreshToken = { userId: user.id, tokenHash, expiresAt };
-    await this.db.insert(refreshTokens).values(newRefreshToken);
+    await this.refreshTokenRepo.create({ userId: user.id, tokenHash, expiresAt });
 
     return { accessToken, refreshToken };
   }

@@ -1,15 +1,13 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users, User } from '../../../../infrastructure/database/schemas/user.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { User } from '../../../../infrastructure/database/schemas/user.schema';
 
 @Injectable()
 export class ValidateUserUseCase {
-  constructor(@Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository) {}
 
   async execute(userId: number): Promise<User | null> {
-    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
-    return user || null;
+    return this.userRepo.findById(userId);
   }
 }

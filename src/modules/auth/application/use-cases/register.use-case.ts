@@ -1,12 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users, NewUser } from '../../../../infrastructure/database/schemas/user.schema';
-import { refreshTokens, NewRefreshToken } from '../../../../infrastructure/database/schemas/refresh-token.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
+import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
 import { RegisterDto } from '../../presentation/dto/auth.dto';
 import type { AuthData } from '../services/auth.service';
@@ -15,7 +14,8 @@ import type { StringValue } from 'ms';
 @Injectable()
 export class RegisterUseCase {
   constructor(
-    @Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase,
+    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository,
+    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: IRefreshTokenRepository,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -24,9 +24,8 @@ export class RegisterUseCase {
     const { email, password, firstName, lastName, role = 'buyer', phone, address } = registerDto;
 
     // Check if user already exists
-    const existingUser = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
-
-    if (existingUser.length > 0) {
+    const existingUser = await this.userRepo.findByEmail(email);
+    if (existingUser) {
       return ApiResponseBuilder.error('User with this email already exists', 'USER_EXISTS');
     }
 
@@ -35,7 +34,7 @@ export class RegisterUseCase {
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const newUser: NewUser = {
+    const createdUser = await this.userRepo.create({
       email,
       password: hashedPassword,
       firstName,
@@ -43,9 +42,7 @@ export class RegisterUseCase {
       role,
       phone,
       address,
-    };
-
-    const [createdUser] = await this.db.insert(users).values(newUser).returning();
+    });
 
     // Generate tokens
     const { accessToken, refreshToken } = await this.generateTokens({
@@ -90,8 +87,7 @@ export class RegisterUseCase {
     const expiryString = this.configService.get<string>('JWT_REFRESH_TOKEN_EXPIRY', '7d');
     const expiresAt = this.calculateExpiryDate(expiryString);
 
-    const newRefreshToken: NewRefreshToken = { userId: user.id, tokenHash, expiresAt };
-    await this.db.insert(refreshTokens).values(newRefreshToken);
+    await this.refreshTokenRepo.create({ userId: user.id, tokenHash, expiresAt });
 
     return { accessToken, refreshToken };
   }

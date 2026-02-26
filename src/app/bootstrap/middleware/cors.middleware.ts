@@ -1,9 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-/**
- * Configure CORS middleware
- */
 export function configureCors(app: INestApplication): void {
   const configService = app.get(ConfigService);
   const allowedOrigins =

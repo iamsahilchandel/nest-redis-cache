@@ -1,12 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { Inject } from '@nestjs/common';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users } from '../../../../infrastructure/database/schemas/user.schema';
-import { eq } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
 
 export interface JwtPayload {
   sub: number;
@@ -17,8 +14,8 @@ export interface JwtPayload {
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
-    @Inject(DATABASE_CONNECTION)
-    private db: PostgresJsDatabase,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: IUserRepository,
     private configService: ConfigService,
   ) {
     super({
@@ -29,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const [user] = await this.db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
+    const user = await this.userRepo.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException('User not found');

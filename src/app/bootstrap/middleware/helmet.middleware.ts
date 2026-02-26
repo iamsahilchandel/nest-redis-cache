@@ -1,9 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import helmet from 'helmet';
 
-/**
- * Configure Helmet security headers middleware
- */
 export function configureHelmet(app: INestApplication): void {
   app.use(
     helmet({

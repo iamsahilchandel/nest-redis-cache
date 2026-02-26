@@ -14,7 +14,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiParam, ApiQuery } from '@nestjs/swagger';
-import { ProductsService, PaginatedProducts } from '../../application/services/products.service';
+import { ProductsService } from '../../application/services/products.service';
+import type { PaginatedProducts } from '../../application/services/products.service';
 import {
   CreateProductDtoSchema,
   UpdateProductDtoSchema,

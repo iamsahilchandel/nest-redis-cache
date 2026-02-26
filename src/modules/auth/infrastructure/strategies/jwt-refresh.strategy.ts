@@ -1,15 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
-import { Inject } from '@nestjs/common';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users } from '../../../../infrastructure/database/schemas/user.schema';
-import { refreshTokens, RefreshToken } from '../../../../infrastructure/database/schemas/refresh-token.schema';
-import { eq, and } from 'drizzle-orm';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as bcrypt from 'bcrypt';
 import { Request } from 'express';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
+import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
+import { eq, and } from 'drizzle-orm';
+import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
+import { refreshTokens, RefreshToken } from '../../../../infrastructure/database/schemas/refresh-token.schema';
+import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 
 export interface RefreshJwtPayload {
   sub: number;
@@ -20,6 +22,8 @@ export interface RefreshJwtPayload {
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh') {
   constructor(
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: IUserRepository,
     @Inject(DATABASE_CONNECTION)
     private db: PostgresJsDatabase,
     private configService: ConfigService,
@@ -39,8 +43,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
       throw new UnauthorizedException('Refresh token is required');
     }
 
-    // Find user
-    const [user] = await this.db.select().from(users).where(eq(users.id, payload.sub)).limit(1);
+    // Find user via repository
+    const user = await this.userRepo.findById(payload.sub);
 
     if (!user) {
       throw new UnauthorizedException('User not found');
@@ -51,6 +55,8 @@ export class JwtRefreshStrategy extends PassportStrategy(Strategy, 'jwt-refresh'
     }
 
     // Find valid refresh tokens for this user
+    // Note: This uses direct DB access because it needs bcrypt comparison
+    // across multiple tokens — a repository method would be less efficient
     const validTokens = await this.db
       .select()
       .from(refreshTokens)

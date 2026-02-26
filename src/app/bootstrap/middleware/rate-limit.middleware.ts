@@ -2,9 +2,6 @@ import { INestApplication } from '@nestjs/common';
 import { rateLimit } from 'express-rate-limit';
 import { ConfigService } from '@nestjs/config';
 
-/**
- * Apply rate-limiting middleware to the Nest application.
- */
 export function configureRateLimit(app: INestApplication) {
   const configService = app.get(ConfigService);
   const rateLimitWindowMs = configService.get<string>('RATE_LIMIT_WINDOW_MS')!;

@@ -1,23 +1,24 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users } from '../../../../infrastructure/database/schemas/user.schema';
-import { refreshTokens } from '../../../../infrastructure/database/schemas/refresh-token.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
+import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
 import { ChangePasswordDto } from '../../presentation/dto/auth.dto';
 
 @Injectable()
 export class ChangePasswordUseCase {
-  constructor(@Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase) {}
+  constructor(
+    @Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository,
+    @Inject(REFRESH_TOKEN_REPOSITORY) private readonly refreshTokenRepo: IRefreshTokenRepository,
+  ) {}
 
   async execute(userId: number, changePasswordDto: ChangePasswordDto): Promise<ApiResponse<{ message: string }>> {
     const { currentPassword, newPassword } = changePasswordDto;
 
     // Find user
-    const [user] = await this.db.select().from(users).where(eq(users.id, userId)).limit(1);
-
+    const user = await this.userRepo.findById(userId);
     if (!user) {
       return ApiResponseBuilder.error('User not found', 'USER_NOT_FOUND');
     }
@@ -33,10 +34,10 @@ export class ChangePasswordUseCase {
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
     // Update password
-    await this.db.update(users).set({ password: hashedNewPassword, updatedAt: new Date() }).where(eq(users.id, userId));
+    await this.userRepo.updatePassword(userId, hashedNewPassword);
 
     // Revoke all refresh tokens on password change for security
-    await this.db.update(refreshTokens).set({ isRevoked: true }).where(eq(refreshTokens.userId, userId));
+    await this.refreshTokenRepo.revokeAllForUser(userId);
 
     return ApiResponseBuilder.success({ message: 'Password changed successfully' });
   }

@@ -1,15 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import type { User } from '../../../../infrastructure/database/schemas/user.schema';
-import type { ApiResponse } from '../../../../shared/helpers/api-response';
-import type { RegisterDto, LoginDto, ChangePasswordDto } from '../../presentation/dto/auth.dto';
-import { RegisterUseCase } from '../use-cases/register.use-case';
-import { LoginUseCase } from '../use-cases/login.use-case';
-import { RefreshTokensUseCase } from '../use-cases/refresh-tokens.use-case';
-import { LogoutUseCase } from '../use-cases/logout.use-case';
-import { ValidateUserUseCase } from '../use-cases/validate-user.use-case';
-import { ChangePasswordUseCase } from '../use-cases/change-password.use-case';
-import { ForgotPasswordUseCase } from '../use-cases/forgot-password.use-case';
-import { ResetPasswordUseCase } from '../use-cases/reset-password.use-case';
+import type { User } from '@/infrastructure/database/schemas/user.schema';
+import type { ApiResponse } from '@/shared/helpers/api-response';
+import type { RegisterDto, LoginDto, ChangePasswordDto } from '@/modules/auth/presentation/dto/auth.dto';
+import {
+  RegisterUseCase,
+  LoginUseCase,
+  RefreshTokensUseCase,
+  LogoutUseCase,
+  ValidateUserUseCase,
+  ChangePasswordUseCase,
+  ForgotPasswordUseCase,
+  ResetPasswordUseCase,
+} from '@/modules/auth/application/use-cases';
 
 export interface AuthData {
   access_token: string;
@@ -23,12 +25,6 @@ export interface AuthData {
   };
 }
 
-/**
- * AuthService - Thin facade that delegates to individual use cases.
- *
- * Each public method corresponds to a single use case, keeping the service
- * class focused on orchestration while business logic lives in use cases.
- */
 @Injectable()
 export class AuthService {
   constructor(

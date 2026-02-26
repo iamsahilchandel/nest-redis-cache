@@ -2,9 +2,6 @@ import { INestApplication } from '@nestjs/common';
 import compression from 'compression';
 import type { Request, Response } from 'express';
 
-/**
- * Configure compression middleware
- */
 export function configureCompression(app: INestApplication): void {
   app.use(
     compression({

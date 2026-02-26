@@ -1,22 +1,8 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-  Logger,
-} from '@nestjs/common';
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler, Logger } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { Request, Response } from 'express';
 
-/**
- * HTTP Request/Response Logging Interceptor
- * 
- * Logs:
- * - Request method, URL, headers, body (sanitized)
- * - Response status, time taken
- * - Error details
- */
 @Injectable()
 export class HttpLoggerInterceptor implements NestInterceptor {
   private readonly logger = new Logger('HTTP');
@@ -28,18 +14,13 @@ export class HttpLoggerInterceptor implements NestInterceptor {
     const userAgent = headers['user-agent'] || '';
     const startTime = Date.now();
 
-    // Skip logging for Swagger UI and health checks
     if (url.startsWith('/api') && !url.startsWith('/api/v1')) {
       return next.handle();
     }
 
-    // Sanitize sensitive data from request body
     const sanitizedBody = this.sanitizeRequestBody(body);
 
-    // Log incoming request
-    this.logger.log(
-      `→ ${method} ${url} | IP: ${ip} | User-Agent: ${userAgent.substring(0, 100)}`,
-    );
+    this.logger.log(`→ ${method} ${url} | IP: ${ip} | User-Agent: ${userAgent.substring(0, 100)}`);
 
     if (sanitizedBody && typeof sanitizedBody === 'object' && !Array.isArray(sanitizedBody)) {
       const keys = Object.keys(sanitizedBody as Record<string, unknown>);
@@ -68,19 +49,13 @@ export class HttpLoggerInterceptor implements NestInterceptor {
         const duration = Date.now() - startTime;
         const statusCode = error.status || 500;
 
-        this.logger.error(
-          `← ${method} ${url} | ${statusCode} | ${duration}ms | Error: ${error.message}`,
-          error.stack,
-        );
+        this.logger.error(`← ${method} ${url} | ${statusCode} | ${duration}ms | Error: ${error.message}`, error.stack);
 
         throw error;
       }),
     );
   }
 
-  /**
-   * Sanitize sensitive fields from request body
-   */
   private sanitizeRequestBody(body: any): any {
     if (!body || typeof body !== 'object') {
       return body;

@@ -1,17 +1,15 @@
 import { Injectable, Inject } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { users } from '../../../../infrastructure/database/schemas/user.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import type { IUserRepository } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
 
 @Injectable()
 export class ForgotPasswordUseCase {
-  constructor(@Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase) {}
+  constructor(@Inject(USER_REPOSITORY) private readonly userRepo: IUserRepository) {}
 
   async execute(email: string): Promise<ApiResponse<{ message: string }>> {
     // Find user
-    const [user] = await this.db.select().from(users).where(eq(users.email, email)).limit(1);
+    const user = await this.userRepo.findByEmail(email);
 
     if (!user) {
       // Don't reveal if email exists or not for security

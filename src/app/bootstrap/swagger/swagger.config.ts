@@ -1,9 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
-/**
- * Configure Swagger documentation
- */
 export function configureSwagger(app: INestApplication, serverPort: string): void {
   const config = new DocumentBuilder()
     .setTitle('E-Commerce API with Redis Caching')
@@ -38,7 +35,7 @@ export function configureSwagger(app: INestApplication, serverPort: string): voi
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  // Swagger UI remains at /api (not /api/v1) for easy access
+
   SwaggerModule.setup('api', app, document, {
     swaggerOptions: {
       persistAuthorization: true,

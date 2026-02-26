@@ -7,6 +7,10 @@ import { AuthController } from './presentation/controllers/auth.controller';
 import { JwtStrategy } from './infrastructure/strategies/jwt.strategy';
 import { JwtRefreshStrategy } from './infrastructure/strategies/jwt-refresh.strategy';
 import { DatabaseModule } from '../../infrastructure/database/database.module';
+import { USER_REPOSITORY } from './domain/ports/user-repository.port';
+import { REFRESH_TOKEN_REPOSITORY } from './domain/ports/refresh-token-repository.port';
+import { DrizzleUserRepository } from './infrastructure/repositories/drizzle-user.repository';
+import { DrizzleRefreshTokenRepository } from './infrastructure/repositories/drizzle-refresh-token.repository';
 import {
   RegisterUseCase,
   LoginUseCase,
@@ -40,6 +44,16 @@ import type { StringValue } from 'ms';
     AuthService,
     JwtStrategy,
     JwtRefreshStrategy,
+    // Repository bindings: port → adapter
+    {
+      provide: USER_REPOSITORY,
+      useClass: DrizzleUserRepository,
+    },
+    {
+      provide: REFRESH_TOKEN_REPOSITORY,
+      useClass: DrizzleRefreshTokenRepository,
+    },
+    // Use cases
     RegisterUseCase,
     LoginUseCase,
     RefreshTokensUseCase,

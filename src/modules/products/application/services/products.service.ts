@@ -2,23 +2,20 @@ import { Injectable } from '@nestjs/common';
 import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
 import type { ApiResponse } from '../../../../shared/helpers/api-response';
 import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from '../../presentation/dto/product.dto';
-import { CreateProductUseCase } from '../use-cases/create-product.use-case';
-import { FindAllProductsUseCase, PaginatedProducts } from '../use-cases/find-all-products.use-case';
-import { FindOneProductUseCase } from '../use-cases/find-one-product.use-case';
-import { FindBySlugUseCase } from '../use-cases/find-by-slug.use-case';
-import { GetFeaturedProductsUseCase } from '../use-cases/get-featured-products.use-case';
-import { UpdateProductUseCase } from '../use-cases/update-product.use-case';
-import { UpdateInventoryUseCase } from '../use-cases/update-inventory.use-case';
-import { RemoveProductUseCase } from '../use-cases/remove-product.use-case';
+import {
+  CreateProductUseCase,
+  FindAllProductsUseCase,
+  PaginatedProducts,
+  FindOneProductUseCase,
+  FindBySlugUseCase,
+  GetFeaturedProductsUseCase,
+  UpdateProductUseCase,
+  UpdateInventoryUseCase,
+  RemoveProductUseCase,
+} from '../use-cases';
 
 export type { PaginatedProducts };
 
-/**
- * ProductsService - Thin facade that delegates to individual use cases.
- *
- * Each public method corresponds to a single use case, keeping the service
- * class focused on orchestration while business logic lives in use cases.
- */
 @Injectable()
 export class ProductsService {
   constructor(

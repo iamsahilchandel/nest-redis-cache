@@ -1,14 +1,15 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from '../../infrastructure/redis/redis.module';
 import { CacheService } from './cache.service';
 import { CacheController } from './presentation/controllers/cache.controller';
+import { CACHE_PORT } from '../../shared/domain/ports/cache.port';
 
 /**
- * CacheModule - Provides centralized caching functionality
+ * CacheModule - Provides centralized caching functionality.
  *
- * This module is marked as @Global so CacheService is available
- * throughout the application without explicit imports.
+ * No longer @Global() — modules that need caching must import this explicitly.
+ * Provides both the concrete CacheService and the ICachePort abstraction.
  *
  * Features:
  * - Single Flight pattern (prevents thundering herd)
@@ -17,11 +18,16 @@ import { CacheController } from './presentation/controllers/cache.controller';
  * - Prefix-based cache invalidation
  * - Admin management API for cache introspection and invalidation
  */
-@Global()
 @Module({
   imports: [ConfigModule, RedisModule],
   controllers: [CacheController],
-  providers: [CacheService],
-  exports: [CacheService],
+  providers: [
+    CacheService,
+    {
+      provide: CACHE_PORT,
+      useExisting: CacheService,
+    },
+  ],
+  exports: [CacheService, CACHE_PORT],
 })
 export class CacheModule {}

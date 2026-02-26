@@ -4,13 +4,17 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-A modern, scalable NestJS API with PostgreSQL database, Drizzle ORM, JWT authentication, and comprehensive security features.
+A modern, scalable NestJS API built with **Domain-Driven Design (DDD)** and **Clean Architecture** principles. Features PostgreSQL, Drizzle ORM, JWT authentication, Redis caching, and comprehensive security.
 
 ## 📋 Table of Contents
 
+- [Architecture Overview](#-architecture-overview)
+- [Project Structure](#-project-structure)
+  - [Layer-by-Layer Breakdown](#layer-by-layer-breakdown)
+  - [Import Aliases](#import-aliases)
+- [How to Add a New Feature Module](#-how-to-add-a-new-feature-module)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
@@ -26,15 +30,309 @@ A modern, scalable NestJS API with PostgreSQL database, Drizzle ORM, JWT authent
 
 ---
 
+## 🏗 Architecture Overview
+
+This project follows **Domain-Driven Design (DDD)** with a **Clean / Hexagonal Architecture** layout. Each bounded context (feature module) is self-contained and organized into four layers that enforce a strict dependency rule:
+
+```
+Presentation → Application → Domain ← Infrastructure
+```
+
+| Layer              | Depends On  | Purpose                                                                 |
+| ------------------ | ----------- | ----------------------------------------------------------------------- |
+| **Domain**         | Nothing     | Core business logic — entities, value objects, ports (interfaces)       |
+| **Application**    | Domain      | Orchestration — use cases, service facades                              |
+| **Infrastructure** | Domain      | Technical details — database repos, strategies, mappers, event handlers |
+| **Presentation**   | Application | Delivery mechanism — controllers, DTOs, guards, decorators              |
+
+> **Key Principle:** The **Domain** layer has zero external dependencies. Infrastructure and Presentation depend inward toward the Domain, never the other way around. Dependencies are inverted through **Ports** (interfaces defined in Domain) and **Adapters** (implementations in Infrastructure).
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                            → Application bootstrap & cross-cutting HTTP concerns
+│   ├── bootstrap/
+│   │   ├── app.bootstrap.ts        → Application startup configuration
+│   │   ├── guards/                 → Global guards (API key, CSRF)
+│   │   ├── middleware/             → Global middleware (CORS, Helmet, rate-limit, compression)
+│   │   └── swagger/               → Swagger / OpenAPI configuration
+│   └── health/
+│       └── health.controller.ts    → Health-check endpoint
+│
+├── infrastructure/                 → Global infrastructure providers
+│   ├── config/
+│   │   └── app.config.ts           → Centralized app configuration (env variables)
+│   ├── database/
+│   │   ├── database.module.ts      → Database module (Drizzle + PostgreSQL)
+│   │   ├── database.provider.ts    → Database connection provider
+│   │   └── schemas/                → Drizzle table schemas (user, product, refresh-token)
+│   └── redis/
+│       ├── redis.module.ts         → Redis module
+│       └── redis.provider.ts       → Redis connection provider
+│
+├── modules/                        → Bounded Contexts (feature modules)
+│   ├── auth/                       → Authentication & Authorization module
+│   │   ├── auth.module.ts          → NestJS module wiring
+│   │   ├── domain/
+│   │   │   ├── entities/           → Domain entities
+│   │   │   ├── value-objects/      → Value objects
+│   │   │   ├── ports/              → Repository interfaces (contracts)
+│   │   │   └── repositories/       → Repository interfaces (alternative location)
+│   │   ├── application/
+│   │   │   ├── services/
+│   │   │   │   └── auth.service.ts → Thin facade delegating to use cases
+│   │   │   └── use-cases/          → One class per business operation
+│   │   │       ├── register.use-case.ts
+│   │   │       ├── login.use-case.ts
+│   │   │       ├── logout.use-case.ts
+│   │   │       ├── refresh-tokens.use-case.ts
+│   │   │       ├── validate-user.use-case.ts
+│   │   │       ├── change-password.use-case.ts
+│   │   │       ├── forgot-password.use-case.ts
+│   │   │       ├── reset-password.use-case.ts
+│   │   │       └── index.ts        → Barrel export
+│   │   ├── infrastructure/
+│   │   │   ├── repositories/       → Drizzle implementations of domain ports
+│   │   │   ├── strategies/         → Passport JWT strategies
+│   │   │   └── persistence/        → (optional) additional persistence concerns
+│   │   └── presentation/
+│   │       ├── controllers/        → HTTP route handlers
+│   │       ├── dto/                → Request / response DTOs (Zod schemas)
+│   │       ├── guards/             → Auth guards (JWT, refresh, roles)
+│   │       └── decorators/         → Custom decorators (@Roles, etc.)
+│   │
+│   ├── products/                   → Product Catalog module
+│   │   ├── products.module.ts
+│   │   ├── domain/
+│   │   │   ├── entities/           → Product entity
+│   │   │   ├── value-objects/      → ProductName, Price, etc.
+│   │   │   ├── events/             → Domain events (ProductCreated, etc.)
+│   │   │   └── ports/              → Repository port interfaces
+│   │   ├── application/
+│   │   │   ├── services/           → Products service facade
+│   │   │   └── use-cases/          → CRUD use cases
+│   │   ├── infrastructure/
+│   │   │   ├── repositories/       → Drizzle repository implementations
+│   │   │   ├── mappers/            → Domain ↔ persistence mappers
+│   │   │   └── event-handlers/     → Domain event handlers
+│   │   └── presentation/
+│   │       ├── controllers/        → Product route handlers
+│   │       └── dto/                → Product DTOs
+│   │
+│   └── cache/                      → Caching module (Redis)
+│       ├── cache.module.ts
+│       ├── cache.service.ts        → Cache service (implements ICachePort)
+│       ├── cache.keys.ts           → Centralized cache key definitions
+│       └── presentation/
+│           └── controllers/        → Cache management endpoints
+│
+├── shared/                         → Shared Domain Kernel & cross-cutting concerns
+│   ├── common.module.ts            → Shared module registration
+│   ├── domain/
+│   │   ├── base.entity.ts          → Base entity class (id, timestamps)
+│   │   ├── domain-event.ts         → Domain event base class
+│   │   ├── exceptions/             → Custom domain exceptions
+│   │   ├── ports/                  → Shared port interfaces (ICachePort, ILogger, etc.)
+│   │   └── index.ts               → Barrel export
+│   ├── filters/                    → Global exception filters
+│   ├── helpers/                    → Utility helpers (API response builder, etc.)
+│   ├── interceptors/               → Global interceptors (response transform, logging)
+│   ├── infrastructure/             → Shared infrastructure (logger, etc.)
+│   ├── middleware/                  → Shared middleware (correlation ID, etc.)
+│   └── pipes/                      → Global pipes (Zod validation)
+│
+├── app.module.ts                   → Root module
+├── app.controller.ts               → Root controller
+├── app.service.ts                  → Root service
+└── main.ts                         → Entry point
+```
+
+### Layer-by-Layer Breakdown
+
+#### 🟡 Domain Layer (`domain/`)
+
+The **heart** of your module. Contains pure business logic with **zero framework dependencies**.
+
+| Folder           | What Goes Here                               | Example                            |
+| ---------------- | -------------------------------------------- | ---------------------------------- |
+| `entities/`      | Core domain objects with identity            | `Product`, `User`                  |
+| `value-objects/` | Immutable objects defined by their value     | `ProductName`, `Price`, `Email`    |
+| `events/`        | Domain events emitted by entities            | `ProductCreatedEvent`              |
+| `ports/`         | Interfaces / contracts (repository, service) | `IProductRepository`, `ICachePort` |
+| `exceptions/`    | Domain-specific error types                  | `InsufficientStockException`       |
+
+> **Rule:** Never import from `@nestjs/*`, database libraries, or HTTP here. If you need something external, define a **Port** interface.
+
+#### 🟢 Application Layer (`application/`)
+
+Orchestrates business operations using domain objects. Each **use case** represents one specific action.
+
+| Folder       | What Goes Here                          | Example                                        |
+| ------------ | --------------------------------------- | ---------------------------------------------- |
+| `use-cases/` | One class per business operation        | `CreateProductUseCase`                         |
+| `services/`  | Thin facades that delegate to use cases | `ProductsService`                              |
+| `index.ts`   | Barrel exports for all use cases        | `export * from './create-product.use-case.js'` |
+
+> **Pattern:** The service (e.g., `AuthService`) is a thin facade — its methods simply call the appropriate use case. This keeps each use case focused and testable.
+
+```typescript
+// application/services/auth.service.ts — Thin Facade Pattern
+@Injectable()
+export class AuthService {
+  constructor(
+    private readonly registerUseCase: RegisterUseCase,
+    private readonly loginUseCase: LoginUseCase,
+    // ...
+  ) {}
+
+  register(dto: RegisterDto) {
+    return this.registerUseCase.execute(dto);
+  }
+}
+```
+
+#### 🔵 Infrastructure Layer (`infrastructure/`)
+
+Implements the ports defined in the Domain layer. This is where frameworks and libraries live.
+
+| Folder            | What Goes Here                                 | Example                    |
+| ----------------- | ---------------------------------------------- | -------------------------- |
+| `repositories/`   | Concrete repository implementations (Drizzle)  | `DrizzleProductRepository` |
+| `mappers/`        | Transform between domain entities & DB records | `ProductMapper`            |
+| `strategies/`     | Authentication strategies (Passport)           | `JwtStrategy`              |
+| `event-handlers/` | Handlers for domain events                     | `OnProductCreatedHandler`  |
+| `persistence/`    | Additional persistence concerns                | Migrations, seeders        |
+
+> **Rule:** Repository classes implement domain port interfaces. Inject them using the port token so the Application layer never knows about Drizzle/SQL.
+
+#### 🔴 Presentation Layer (`presentation/`)
+
+The HTTP delivery mechanism. Translates HTTP requests into application calls and formats responses.
+
+| Folder         | What Goes Here                                      | Example                      |
+| -------------- | --------------------------------------------------- | ---------------------------- |
+| `controllers/` | NestJS route handlers                               | `ProductsController`         |
+| `dto/`         | Request/response validation schemas (Zod + Swagger) | `CreateProductDto`           |
+| `guards/`      | Route-level guards                                  | `JwtAuthGuard`, `RolesGuard` |
+| `decorators/`  | Custom parameter/method decorators                  | `@Roles('admin')`            |
+
+### Import Aliases
+
+The project uses the `@/` path alias for clean imports:
+
+```typescript
+// Instead of fragile relative paths:
+import { User } from '../../../../infrastructure/database/schemas/user.schema';
+
+// Use absolute aliases:
+import { User } from '@/infrastructure/database/schemas/user.schema';
+```
+
+Configured in `tsconfig.json` → `paths: { "@/*": ["src/*"] }`.
+
+---
+
+## 🧩 How to Add a New Feature Module
+
+Follow this step-by-step guide to add a new bounded context (e.g., **Orders**):
+
+### 1. Create the folder structure
+
+```
+src/modules/orders/
+├── orders.module.ts
+├── domain/
+│   ├── entities/
+│   │   └── order.entity.ts
+│   ├── value-objects/
+│   │   └── order-status.vo.ts
+│   ├── events/
+│   │   └── order-placed.event.ts
+│   └── ports/
+│       └── order-repository.port.ts
+├── application/
+│   ├── services/
+│   │   └── orders.service.ts
+│   ├── use-cases/
+│   │   ├── place-order.use-case.ts
+│   │   ├── cancel-order.use-case.ts
+│   │   ├── get-order.use-case.ts
+│   │   └── index.ts
+├── infrastructure/
+│   ├── repositories/
+│   │   └── drizzle-order.repository.ts
+│   └── mappers/
+│       └── order.mapper.ts
+└── presentation/
+    ├── controllers/
+    │   └── orders.controller.ts
+    └── dto/
+        └── orders.dto.ts
+```
+
+### 2. Build inside-out
+
+| Step | Layer            | What to Do                                                               |
+| ---- | ---------------- | ------------------------------------------------------------------------ |
+| 1    | **Domain**       | Define `OrderEntity`, value objects, `IOrderRepository` port             |
+| 2    | **Application**  | Write use-case classes, create barrel `index.ts`, create service facade  |
+| 3    | **Infra**        | Add Drizzle schema in `infrastructure/database/schemas/`, implement repo |
+| 4    | **Presentation** | Create DTOs, controller, guards/decorators if needed                     |
+| 5    | **Module**       | Wire everything in `orders.module.ts`, import into `app.module.ts`       |
+
+### 3. Wire the module
+
+```typescript
+// src/modules/orders/orders.module.ts
+@Module({
+  imports: [DatabaseModule, CacheModule],
+  controllers: [OrdersController],
+  providers: [
+    OrdersService,
+    PlaceOrderUseCase,
+    CancelOrderUseCase,
+    GetOrderUseCase,
+    {
+      provide: 'IOrderRepository', // Port token
+      useClass: DrizzleOrderRepository, // Adapter
+    },
+  ],
+  exports: [OrdersService],
+})
+export class OrdersModule {}
+```
+
+### 4. Quick reference — what goes where
+
+| You want to...                            | Create it in                                                          |
+| ----------------------------------------- | --------------------------------------------------------------------- |
+| Add a new business entity                 | `modules/<feature>/domain/entities/`                                  |
+| Add a new business operation              | `modules/<feature>/application/use-cases/`                            |
+| Add a database table                      | `infrastructure/database/schemas/`                                    |
+| Add a repository implementation           | `modules/<feature>/infrastructure/repositories/`                      |
+| Add a new HTTP endpoint                   | `modules/<feature>/presentation/controllers/`                         |
+| Add request validation                    | `modules/<feature>/presentation/dto/`                                 |
+| Add a shared domain concept               | `shared/domain/`                                                      |
+| Add a global guard / filter / interceptor | `shared/filters/`, `shared/interceptors/`, or `app/bootstrap/guards/` |
+| Add cache key patterns                    | `modules/cache/cache.keys.ts`                                         |
+| Add new global middleware                 | `app/bootstrap/middleware/`                                           |
+
+---
+
 ## ✨ Features
 
-- **Authentication & Authorization** - JWT-based authentication with role-based access control (buyer, seller, admin)
-- **Database Management** - PostgreSQL with Drizzle ORM for type-safe database operations
-- **API Documentation** - Swagger/OpenAPI integration for interactive API documentation
-- **Rate Limiting** - Built-in request throttling to prevent abuse
-- **Security** - Helmet, CORS, CSRF protection, and API key authentication
-- **Validation** - Request validation using Zod schemas
-- **Product Management** - Full CRUD operations for product catalog
+- **Authentication & Authorization** — JWT-based auth with role-based access control (buyer, seller, admin)
+- **Database Management** — PostgreSQL with Drizzle ORM for type-safe database operations
+- **Redis Caching** — Centralized caching with typed cache keys and invalidation
+- **API Documentation** — Swagger/OpenAPI integration for interactive API docs
+- **Rate Limiting** — Built-in request throttling to prevent abuse
+- **Security** — Helmet, CORS, CSRF protection, and API key authentication
+- **Validation** — Request validation using Zod schemas
+- **Product Management** — Full CRUD operations for product catalog
+- **DDD Architecture** — Clean separation of concerns with domain-driven module structure
 
 ---
 
@@ -45,34 +343,11 @@ A modern, scalable NestJS API with PostgreSQL database, Drizzle ORM, JWT authent
 | [NestJS](https://nestjs.com/)             | Backend framework |
 | [PostgreSQL](https://www.postgresql.org/) | Database          |
 | [Drizzle ORM](https://orm.drizzle.team/)  | Type-safe ORM     |
+| [Redis / ioredis](https://redis.io/)      | Caching layer     |
 | [Zod](https://zod.dev/)                   | Schema validation |
 | [Passport](http://www.passportjs.org/)    | Authentication    |
 | [JWT](https://jwt.io/)                    | Token-based auth  |
 | [Swagger](https://swagger.io/)            | API documentation |
-
----
-
-## 📁 Project Structure
-
-```
-src/
-├── bootstrap/       → Add guards, interceptors, filters, and decorators here
-├── common/          → Add shared utilities, helpers, and services here
-├── database/
-│   └── schemas/     → Add Drizzle table schemas here (*.schema.ts)
-├── features/        → Add feature modules here (auth, products, orders, etc.)
-└── main.ts          → Application entry point
-```
-
-**Where to add new code:**
-
-| What you're creating  | Where to add it                                          |
-| --------------------- | -------------------------------------------------------- |
-| New feature module    | `src/features/<feature-name>/`                           |
-| Database schema       | `src/database/schemas/<name>.schema.ts`                  |
-| Guards / Interceptors | `src/bootstrap/guards/` or `src/bootstrap/interceptors/` |
-| Shared utilities      | `src/common/`                                            |
-| DTOs / Validators     | Inside your feature module folder                        |
 
 ---
 
@@ -154,7 +429,7 @@ RATE_LIMIT_MAX=100
 
 This project uses **PostgreSQL** with **Drizzle ORM** for type-safe database operations.
 
-Database schemas are located in `src/database/schemas/`. Check these files for detailed table structures.
+Database schemas are located in `src/infrastructure/database/schemas/`. Check these files for detailed table structures.
 
 ### Database Migrations
 
@@ -172,7 +447,7 @@ Drizzle Kit is used for database migrations. Configuration can be found in `driz
 
 #### Step-by-Step Migration Guide
 
-1. **Make changes to your schema files** in `src/database/schemas/`
+1. **Make changes to your schema files** in `src/infrastructure/database/schemas/`
 
 2. **Generate migration files**
 
@@ -181,8 +456,6 @@ Drizzle Kit is used for database migrations. Configuration can be found in `driz
    ```
 
    The `--name` flag gives your migration a meaningful name (e.g., `--name add_orders_table`).
-
-   This will create SQL migration files in `src/database/migrations/`
 
 3. **Review the generated migration** (recommended)
 

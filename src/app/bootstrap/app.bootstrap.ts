@@ -3,8 +3,9 @@ import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../../app.module';
 import { CsrfExceptionFilter } from '../../shared/filters/csrf-exception.filter';
+import { DomainExceptionFilter } from '../../shared/filters/domain-exception.filter';
+import { CorrelationIdMiddleware } from '../../shared/middleware/correlation-id.middleware';
 
-// Middleware imports
 import {
   configureHelmet,
   configureCompression,
@@ -14,12 +15,8 @@ import {
   configureRateLimit,
 } from './middleware';
 
-// Swagger configuration
 import { configureSwagger } from './swagger/swagger.config';
 
-/**
- * Bootstrap the NestJS application
- */
 export async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
@@ -29,14 +26,14 @@ export async function bootstrap(): Promise<void> {
   const NODE_ENV = configService.get<string>('NODE_ENV');
   const SERVER_PORT = configService.get<string>('SERVER_PORT') || '3000';
 
-  // Log application startup
   logger.log(`🚀 Starting application in ${NODE_ENV || 'development'} mode...`);
 
-  // Set global prefix and filters
   app.setGlobalPrefix('api/v1');
-  app.useGlobalFilters(new CsrfExceptionFilter());
+  app.useGlobalFilters(new CsrfExceptionFilter(), new DomainExceptionFilter());
 
-  // Configure middleware
+  const correlationMiddleware = app.get(CorrelationIdMiddleware);
+  app.use(correlationMiddleware.use.bind(correlationMiddleware));
+
   configureHelmet(app);
   configureCompression(app);
   configureCors(app);
@@ -44,10 +41,8 @@ export async function bootstrap(): Promise<void> {
   configureCsrf(app);
   configureRateLimit(app);
 
-  // Configure Swagger documentation
   configureSwagger(app, SERVER_PORT);
 
-  // Start the application
   await app.listen(SERVER_PORT);
 
   logger.log(`✅ Application is running on: http://localhost:${SERVER_PORT}`);

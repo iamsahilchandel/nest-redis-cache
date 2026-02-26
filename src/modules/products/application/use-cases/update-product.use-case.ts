@@ -1,67 +1,73 @@
-import { Injectable, Inject, Logger, NotFoundException, ConflictException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { products, Product, NewProduct } from '../../../../infrastructure/database/schemas/product.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import type { IProductRepository } from '../../domain/ports/product-repository.port';
+import { PRODUCT_REPOSITORY } from '../../domain/ports/product-repository.port';
+import type { IEventBus } from '../../../../shared/domain/ports/event-bus.port';
+import { EVENT_BUS } from '../../../../shared/domain/ports/event-bus.port';
+import { EntityNotFoundException, EntityConflictException } from '../../../../shared/domain/exceptions';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
 import { UpdateProductDto } from '../../presentation/dto/product.dto';
-import { CacheService } from '../../../cache/cache.service';
-import { CacheKeys, InvalidationKeys } from '../../../cache/cache.keys';
+import { ProductUpdatedEvent } from '../../domain/events/product.events';
+import { ProductMapper } from '../../infrastructure/mappers/product.mapper';
+import { Money, Slug } from '../../domain/value-objects';
+import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
 
 @Injectable()
 export class UpdateProductUseCase {
   private readonly logger = new Logger(UpdateProductUseCase.name);
 
   constructor(
-    @Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase,
-    private readonly cacheService: CacheService,
+    @Inject(PRODUCT_REPOSITORY) private readonly productRepo: IProductRepository,
+    @Inject(EVENT_BUS) private readonly eventBus: IEventBus,
   ) {}
 
   async execute(id: number, updateProductDto: UpdateProductDto): Promise<ApiResponse<Product>> {
-    const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
-
-    if (!existingProduct) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+    const entity = await this.productRepo.findById(id);
+    if (!entity) {
+      throw new EntityNotFoundException('Product', id);
     }
 
-    // Check slug uniqueness if updating slug
-    if (updateProductDto.slug && updateProductDto.slug !== existingProduct.slug) {
-      const [duplicateSlug] = await this.db
-        .select()
-        .from(products)
-        .where(eq(products.slug, updateProductDto.slug))
-        .limit(1);
+    const oldSlug = entity.slug.value;
 
-      if (duplicateSlug) {
-        throw new ConflictException('Product with this slug already exists');
+    // Check slug uniqueness if updating slug
+    if (updateProductDto.slug && updateProductDto.slug !== oldSlug) {
+      const slugTaken = await this.productRepo.slugExists(updateProductDto.slug, id);
+      if (slugTaken) {
+        throw new EntityConflictException('Product with this slug already exists');
       }
     }
 
-    const { images, tags, ...rest } = updateProductDto;
+    // Build domain update
+    const { images, tags, price, compareAtPrice, costPrice, slug, ...rest } = updateProductDto;
 
-    const updateData: Partial<NewProduct> = {
-      ...rest,
-      updatedAt: new Date(),
-    };
+    const updates: Record<string, unknown> = { ...rest };
 
-    if (images !== undefined) {
-      updateData.images = JSON.stringify(images);
-    }
+    if (price !== undefined) updates.price = new Money(String(price));
+    if (compareAtPrice !== undefined)
+      updates.compareAtPrice = compareAtPrice ? new Money(String(compareAtPrice)) : null;
+    if (costPrice !== undefined) updates.costPrice = costPrice ? new Money(String(costPrice)) : null;
+    if (slug !== undefined) updates.slug = new Slug(slug);
+    if (images !== undefined) updates.images = JSON.stringify(images);
+    if (tags !== undefined) updates.tags = JSON.stringify(tags);
 
-    if (tags !== undefined) {
-      updateData.tags = JSON.stringify(tags);
-    }
+    entity.updateDetails(updates);
+    const saved = await this.productRepo.save(entity);
 
-    const [updatedProduct] = await this.db.update(products).set(updateData).where(eq(products.id, id)).returning();
+    // Emit domain event
+    await this.eventBus.publish(
+      new ProductUpdatedEvent({
+        productId: id,
+        oldSlug,
+        newSlug: updateProductDto.slug !== oldSlug ? updateProductDto.slug : undefined,
+      }),
+    );
 
-    // Invalidate related caches (old slug + new slug if changed)
-    const invalidationKeys = InvalidationKeys.PRODUCTS.onUpdate(id, existingProduct.slug);
-    if (updateProductDto.slug && updateProductDto.slug !== existingProduct.slug) {
-      invalidationKeys.push(CacheKeys.PRODUCTS.bySlug(updateProductDto.slug));
-    }
-    await this.cacheService.invalidateMany(invalidationKeys);
-    this.logger.debug(`Updated product ${id}, invalidated ${invalidationKeys.length} cache keys`);
+    this.logger.debug(`Updated product ${id}`);
 
-    return ApiResponseBuilder.success(updatedProduct, { productId: id }, 'Product updated successfully');
+    const product = ProductMapper.toPersistence(saved);
+    return ApiResponseBuilder.success(
+      { ...product, id: saved.id, createdAt: saved.createdAt } as Product,
+      { productId: id },
+      'Product updated successfully',
+    );
   }
 }

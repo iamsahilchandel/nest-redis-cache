@@ -1,38 +1,49 @@
-import { Injectable, Inject, Logger, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { products, Product } from '../../../../infrastructure/database/schemas/product.schema';
-import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
+import { Injectable, Inject, Logger } from '@nestjs/common';
+import type { IProductRepository } from '../../domain/ports/product-repository.port';
+import { PRODUCT_REPOSITORY } from '../../domain/ports/product-repository.port';
+import type { IEventBus } from '../../../../shared/domain/ports/event-bus.port';
+import { EVENT_BUS } from '../../../../shared/domain/ports/event-bus.port';
+import { EntityNotFoundException } from '../../../../shared/domain/exceptions';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
-import { CacheService } from '../../../cache/cache.service';
-import { InvalidationKeys } from '../../../cache/cache.keys';
+import { InventoryUpdatedEvent } from '../../domain/events/product.events';
+import { ProductMapper } from '../../infrastructure/mappers/product.mapper';
+import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
 
 @Injectable()
 export class UpdateInventoryUseCase {
   private readonly logger = new Logger(UpdateInventoryUseCase.name);
 
   constructor(
-    @Inject(DATABASE_CONNECTION) private db: PostgresJsDatabase,
-    private readonly cacheService: CacheService,
+    @Inject(PRODUCT_REPOSITORY) private readonly productRepo: IProductRepository,
+    @Inject(EVENT_BUS) private readonly eventBus: IEventBus,
   ) {}
 
   async execute(id: number, quantity: number): Promise<ApiResponse<Product>> {
-    const [existingProduct] = await this.db.select().from(products).where(eq(products.id, id)).limit(1);
-
-    if (!existingProduct) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
+    const entity = await this.productRepo.findById(id);
+    if (!entity) {
+      throw new EntityNotFoundException('Product', id);
     }
 
-    const [updatedProduct] = await this.db
-      .update(products)
-      .set({ quantity, updatedAt: new Date() })
-      .where(eq(products.id, id))
-      .returning();
+    const oldQuantity = entity.quantity;
+    entity.updateInventory(quantity);
+    const saved = await this.productRepo.save(entity);
 
-    // Invalidate related caches
-    await this.cacheService.invalidateMany(InvalidationKeys.PRODUCTS.onInventoryUpdate(id));
-    this.logger.debug(`Updated inventory for product ${id}, invalidated cache`);
+    // Emit domain event
+    await this.eventBus.publish(
+      new InventoryUpdatedEvent({
+        productId: id,
+        newQuantity: quantity,
+        oldQuantity,
+      }),
+    );
 
-    return ApiResponseBuilder.success(updatedProduct, { productId: id }, 'Inventory updated successfully');
+    this.logger.debug(`Updated inventory for product ${id}`);
+
+    const product = ProductMapper.toPersistence(saved);
+    return ApiResponseBuilder.success(
+      { ...product, id: saved.id, createdAt: saved.createdAt } as Product,
+      { productId: id },
+      'Inventory updated successfully',
+    );
   }
 }
