@@ -4,11 +4,11 @@ import { Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcrypt';
-import { DATABASE_CONNECTION } from '../../core/database/database.provider';
-import { users, User, NewUser } from '../../core/database/schemas/user.schema';
-import { refreshTokens, NewRefreshToken } from '../../core/database/schemas/refresh-token.schema';
+import { DATABASE_CONNECTION } from '../../infra/database/database.provider';
+import { users, User, NewUser } from '../../infra/database/schemas/user.schema';
+import { refreshTokens, NewRefreshToken } from '../../infra/database/schemas/refresh-token.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { ApiResponseBuilder, ApiResponse } from '../../common/api-response';
+import { ApiResponseBuilder, ApiResponse } from '../../shared/api-response';
 import { RegisterDto, LoginDto, ChangePasswordDto } from './dto/auth.dto';
 import type { StringValue } from 'ms';
 

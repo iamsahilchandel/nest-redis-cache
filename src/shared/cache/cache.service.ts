@@ -1,6 +1,6 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { REDIS_CLIENT } from '../../core/redis/redis.provider';
+import { REDIS_CLIENT } from '../../infra/redis/redis.provider';
 import Redis from 'ioredis';
 
 interface CacheEntry<T> {

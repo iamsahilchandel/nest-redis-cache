@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from '../app.module';
-import { CsrfExceptionFilter } from '../common/csrf-exception.filter';
+import { CsrfExceptionFilter } from '../shared/csrf-exception.filter';
 
 // Middleware imports
 import {

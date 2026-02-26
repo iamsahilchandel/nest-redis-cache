@@ -39,8 +39,8 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe';
-import type { ApiResponse as ApiResponseType } from '../../common/api-response';
+import { ZodValidationPipe } from '../../shared/zod-validation.pipe';
+import type { ApiResponse as ApiResponseType } from '../../shared/api-response';
 
 @ApiTags('auth')
 @Controller('auth')

@@ -24,12 +24,12 @@ import {
   ProductQueryDtoSwagger,
 } from './dto/product.dto';
 import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from './dto/product.dto';
-import type { Product } from '../../core/database/schemas/product.schema';
+import type { Product } from '../../infra/database/schemas/product.schema';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { ZodValidationPipe } from '../../common/zod-validation.pipe';
-import type { ApiResponse as ApiResponseType } from '../../common/api-response';
+import { ZodValidationPipe } from '../../shared/zod-validation.pipe';
+import type { ApiResponse as ApiResponseType } from '../../shared/api-response';
 
 @ApiTags('products')
 @Controller('products')
