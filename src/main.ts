@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { bootstrap } from './bootstrap/app.bootstrap';
+import { bootstrap } from './app/bootstrap/app.bootstrap';
 
 bootstrap().catch((err) => {
   const logger = new Logger('Bootstrap');
