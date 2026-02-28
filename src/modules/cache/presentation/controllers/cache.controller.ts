@@ -31,7 +31,7 @@ import { Roles } from '../../../auth/presentation/decorators/roles.decorator';
 import { ZodValidationPipe } from '../../../../shared/pipes/zod-validation.pipe';
 
 @ApiTags('cache')
-@Controller('cache')
+@Controller({ version: '1', path: 'cache' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin')
 @ApiBearerAuth('JWT-auth')

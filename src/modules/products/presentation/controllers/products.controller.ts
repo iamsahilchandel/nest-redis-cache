@@ -33,7 +33,7 @@ import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from '../dto
 import type { ApiResponse as ApiResponseType } from '@/shared/helpers/api-response';
 
 @ApiTags('products')
-@Controller('products')
+@Controller({ version: '1', path: 'products' })
 export class ProductsController {
   private readonly logger = new Logger(ProductsController.name);
 

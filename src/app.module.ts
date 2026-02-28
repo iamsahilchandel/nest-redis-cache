@@ -8,7 +8,7 @@ import { EventBusModule } from '@/shared/infrastructure/events/event-bus.module'
 import { CommonModule } from '@/shared/common.module';
 import { AuthModule } from '@/modules/auth/auth.module';
 import { ProductsModule } from '@/modules/products/products.module';
-import { CorrelationIdMiddleware } from '@/shared/middleware/correlation-id.middleware';
+import { CorrelationIdMiddleware } from '@/app/bootstrap/middleware/correlation-id.middleware';
 import { HealthController } from '@/app/health/health.controller';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';

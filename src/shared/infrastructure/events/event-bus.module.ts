@@ -1,5 +1,5 @@
 import { Module, Global } from '@nestjs/common';
-import { EVENT_BUS } from '../../domain/ports/event-bus.port';
+import { EVENT_BUS } from '@/shared/domain/ports/event-bus.port';
 import { InMemoryEventBus } from './in-memory-event-bus';
 
 @Global()

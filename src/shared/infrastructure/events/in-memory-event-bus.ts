@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import type { DomainEvent } from '../../domain/domain-event';
-import type { IEventBus, EventHandler } from '../../domain/ports/event-bus.port';
+import type { DomainEvent } from '@/shared/domain/domain-event';
+import type { IEventBus, EventHandler } from '@/shared/domain/ports/event-bus.port';
 
 @Injectable()
 export class InMemoryEventBus implements IEventBus {

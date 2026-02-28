@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { AppModule } from '@/app.module';
 import { CsrfExceptionFilter } from '@/shared/filters/csrf-exception.filter';
 import { DomainExceptionFilter } from '@/shared/filters/domain-exception.filter';
-import { CorrelationIdMiddleware } from '@/shared/middleware/correlation-id.middleware';
+import { CorrelationIdMiddleware } from '@/app/bootstrap/middleware/correlation-id.middleware';
 
 import {
   configureHelmet,
