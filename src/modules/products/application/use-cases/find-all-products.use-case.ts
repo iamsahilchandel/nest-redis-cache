@@ -1,13 +1,11 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IProductRepository } from '../../domain/ports/product-repository.port';
-import { PRODUCT_REPOSITORY } from '../../domain/ports/product-repository.port';
-import type { ICachePort } from '../../../../shared/domain/ports/cache.port';
-import { CACHE_PORT } from '../../../../shared/domain/ports/cache.port';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
-import { ProductQueryDto } from '../../presentation/dto/product.dto';
+import { CACHE_PORT, type ICachePort } from '@/shared/domain/ports/cache.port';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import { PRODUCT_REPOSITORY, type IProductRepository } from '../../domain/ports';
 import { ProductMapper } from '../../infrastructure/mappers/product.mapper';
 import { CacheKeys, CacheTags, CacheTTL, hashQuery } from '../../../cache/cache.keys';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
+import type { ProductQueryDto } from '../../presentation/dto/product.dto';
 
 export interface PaginatedProducts {
   products: Product[];

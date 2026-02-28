@@ -1,13 +1,11 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IProductRepository } from '../../domain/ports/product-repository.port';
-import { PRODUCT_REPOSITORY } from '../../domain/ports/product-repository.port';
-import type { IEventBus } from '../../../../shared/domain/ports/event-bus.port';
-import { EVENT_BUS } from '../../../../shared/domain/ports/event-bus.port';
-import { EntityNotFoundException } from '../../../../shared/domain/exceptions';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
+import { EVENT_BUS, type IEventBus } from '@/shared/domain/ports/event-bus.port';
+import { EntityNotFoundException } from '@/shared/domain/exceptions';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import { PRODUCT_REPOSITORY, type IProductRepository } from '../../domain/ports';
 import { InventoryUpdatedEvent } from '../../domain/events/product.events';
 import { ProductMapper } from '../../infrastructure/mappers/product.mapper';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
 
 @Injectable()
 export class UpdateInventoryUseCase {

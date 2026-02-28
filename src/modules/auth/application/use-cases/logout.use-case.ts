@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
-import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports';
+import type { IRefreshTokenRepository } from '../../domain/ports';
 
 @Injectable()
 export class LogoutUseCase {

@@ -1,6 +1,6 @@
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
 import { ProductEntity, ProductStatus } from '../../domain/entities/product.entity';
 import { Money, Slug } from '../../domain/value-objects';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
 
 export class ProductMapper {
   static toDomain(row: Product): ProductEntity {

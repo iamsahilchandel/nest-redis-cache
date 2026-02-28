@@ -1,4 +1,4 @@
-import { BaseDomainEvent } from '../../../../shared/domain/domain-event';
+import { BaseDomainEvent } from '@/shared/domain/domain-event';
 
 export interface ProductCreatedPayload {
   productId: number;

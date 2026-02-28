@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import { USER_REPOSITORY } from '../../domain/ports';
+import type { IUserRepository } from '../../domain/ports';
 
 @Injectable()
 export class ForgotPasswordUseCase {

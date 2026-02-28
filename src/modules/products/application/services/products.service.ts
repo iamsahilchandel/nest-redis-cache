@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
-import type { ApiResponse } from '../../../../shared/helpers/api-response';
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
+import type { ApiResponse } from '@/shared/helpers/api-response';
 import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from '../../presentation/dto/product.dto';
 import {
   CreateProductUseCase,

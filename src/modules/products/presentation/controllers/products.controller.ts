@@ -24,13 +24,13 @@ import {
   UpdateProductDtoSwagger,
   ProductQueryDtoSwagger,
 } from '../dto/product.dto';
+import { JwtAuthGuard } from '@/modules/auth/presentation/guards/jwt-auth.guard';
+import { RolesGuard } from '@/modules/auth/presentation/guards/roles.guard';
+import { Roles } from '@/modules/auth/presentation/decorators/roles.decorator';
+import { ZodValidationPipe } from '@/shared/pipes/zod-validation.pipe';
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
 import type { CreateProductDto, UpdateProductDto, ProductQueryDto } from '../dto/product.dto';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
-import { JwtAuthGuard } from '../../../auth/presentation/guards/jwt-auth.guard';
-import { RolesGuard } from '../../../auth/presentation/guards/roles.guard';
-import { Roles } from '../../../auth/presentation/decorators/roles.decorator';
-import { ZodValidationPipe } from '../../../../shared/pipes/zod-validation.pipe';
-import type { ApiResponse as ApiResponseType } from '../../../../shared/helpers/api-response';
+import type { ApiResponse as ApiResponseType } from '@/shared/helpers/api-response';
 
 @ApiTags('products')
 @Controller('products')

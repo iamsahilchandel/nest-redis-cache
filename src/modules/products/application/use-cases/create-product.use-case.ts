@@ -1,16 +1,14 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
-import type { IProductRepository } from '../../domain/ports/product-repository.port';
-import { PRODUCT_REPOSITORY } from '../../domain/ports/product-repository.port';
-import type { IEventBus } from '../../../../shared/domain/ports/event-bus.port';
-import { EVENT_BUS } from '../../../../shared/domain/ports/event-bus.port';
-import { EntityConflictException } from '../../../../shared/domain/exceptions';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
-import { CreateProductDto } from '../../presentation/dto/product.dto';
+import { EVENT_BUS } from '@/shared/domain/ports';
+import { EntityConflictException } from '@/shared/domain/exceptions';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import type { IEventBus } from '@/shared/domain/ports';
+import type { Product } from '@/infrastructure/database/schemas/product.schema';
+import { PRODUCT_REPOSITORY, type IProductRepository } from '../../domain/ports';
 import { ProductCreatedEvent } from '../../domain/events/product.events';
-import { Slug } from '../../domain/value-objects/slug.value-object';
-import type { ProductEntity } from '../../domain/entities/product.entity';
 import { ProductMapper } from '../../infrastructure/mappers/product.mapper';
-import type { Product } from '../../../../infrastructure/database/schemas/product.schema';
+import { Slug } from '../../domain/value-objects/slug.value-object';
+import type { CreateProductDto } from '../../presentation/dto/product.dto';
 
 @Injectable()
 export class CreateProductUseCase {

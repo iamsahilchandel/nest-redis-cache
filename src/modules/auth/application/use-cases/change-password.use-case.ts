@@ -1,11 +1,9 @@
 import { Injectable, Inject } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
-import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
-import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
 import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
-import { ChangePasswordDto } from '../../presentation/dto/auth.dto';
+import { USER_REPOSITORY, REFRESH_TOKEN_REPOSITORY } from '../../domain/ports';
+import type { IUserRepository, IRefreshTokenRepository } from '../../domain/ports';
+import type { ChangePasswordDto } from '../../presentation/dto/auth.dto';
 
 @Injectable()
 export class ChangePasswordUseCase {

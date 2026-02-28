@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
 
 @Injectable()
 export class ResetPasswordUseCase {

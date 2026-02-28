@@ -1,15 +1,10 @@
 import { Injectable, Inject, Logger } from '@nestjs/common';
 import { eq, and, like, gte, lte, desc, asc, sql, SQL } from 'drizzle-orm';
-import { DATABASE_CONNECTION } from '../../../../infrastructure/database/database.provider';
-import { products } from '../../../../infrastructure/database/schemas/product.schema';
+import { DATABASE_CONNECTION } from '@/infrastructure/database/database.provider';
+import { products } from '@/infrastructure/database/schemas/product.schema';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import type { ProductEntity } from '../../domain/entities/product.entity';
-import type {
-  IProductRepository,
-  ProductQueryFilters,
-  PaginatedResult,
-  CreateProductData,
-} from '../../domain/ports/product-repository.port';
+import type { IProductRepository, ProductQueryFilters, PaginatedResult, CreateProductData } from '../../domain/ports';
 import { ProductMapper } from '../mappers/product.mapper';
 
 @Injectable()

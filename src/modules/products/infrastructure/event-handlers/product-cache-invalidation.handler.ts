@@ -1,9 +1,7 @@
 import { Injectable, Inject, Logger, OnModuleInit } from '@nestjs/common';
-import type { IEventBus } from '../../../../shared/domain/ports/event-bus.port';
-import { EVENT_BUS } from '../../../../shared/domain/ports/event-bus.port';
-import type { ICachePort } from '../../../../shared/domain/ports/cache.port';
-import { CACHE_PORT } from '../../../../shared/domain/ports/cache.port';
-import type { DomainEvent } from '../../../../shared/domain/domain-event';
+import { EVENT_BUS, type IEventBus } from '@/shared/domain/ports/event-bus.port';
+import { CACHE_PORT, type ICachePort } from '@/shared/domain/ports/cache.port';
+import type { DomainEvent } from '@/shared/domain/domain-event';
 import {
   ProductCreatedEvent,
   ProductUpdatedEvent,

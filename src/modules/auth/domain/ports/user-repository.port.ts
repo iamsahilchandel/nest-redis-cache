@@ -1,4 +1,4 @@
-import type { User } from '../../../../infrastructure/database/schemas/user.schema';
+import type { User } from '@/infrastructure/database/schemas/user.schema';
 
 export interface IUserRepository {
   findById(id: number): Promise<User | null>;

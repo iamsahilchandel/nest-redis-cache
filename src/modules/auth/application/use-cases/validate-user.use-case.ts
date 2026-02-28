@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
+import { USER_REPOSITORY } from '../../domain/ports';
+import type { IUserRepository } from '../../domain/ports';
 import type { User } from '../../../../infrastructure/database/schemas/user.schema';
 
 @Injectable()

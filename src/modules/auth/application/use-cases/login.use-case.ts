@@ -2,12 +2,10 @@ import { Injectable, Inject } from '@nestjs/common';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import type { IUserRepository } from '../../domain/ports/user-repository.port';
-import { USER_REPOSITORY } from '../../domain/ports/user-repository.port';
-import type { IRefreshTokenRepository } from '../../domain/ports/refresh-token-repository.port';
-import { REFRESH_TOKEN_REPOSITORY } from '../../domain/ports/refresh-token-repository.port';
-import { ApiResponseBuilder, ApiResponse } from '../../../../shared/helpers/api-response';
-import { LoginDto } from '../../presentation/dto/auth.dto';
+import { ApiResponseBuilder, ApiResponse } from '@/shared/helpers/api-response';
+import { USER_REPOSITORY, REFRESH_TOKEN_REPOSITORY } from '../../domain/ports';
+import type { IUserRepository, IRefreshTokenRepository } from '../../domain/ports';
+import type { LoginDto } from '../../presentation/dto/auth.dto';
 import type { AuthData } from '../services/auth.service';
 import type { StringValue } from 'ms';
 

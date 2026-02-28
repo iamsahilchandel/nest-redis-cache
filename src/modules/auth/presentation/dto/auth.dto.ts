@@ -13,7 +13,7 @@ export const RegisterDtoSchema = z.object({
 });
 
 export const LoginDtoSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string(),
 });
 
@@ -23,7 +23,7 @@ export const ChangePasswordDtoSchema = z.object({
 });
 
 export const ForgotPasswordDtoSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
 });
 
 export const ResetPasswordDtoSchema = z.object({
