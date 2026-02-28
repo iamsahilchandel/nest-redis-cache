@@ -1,10 +1,10 @@
-import { Controller, Get, Req, Logger } from '@nestjs/common';
+import { Controller, Get, Req, Logger, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { AppService } from './app.service';
 
 @ApiTags('api')
-@Controller()
+@Controller({ version: VERSION_NEUTRAL, path: '/' })
 export class AppController {
   private readonly logger = new Logger(AppController.name);
 

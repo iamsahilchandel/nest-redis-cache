@@ -43,7 +43,7 @@ import { ZodValidationPipe } from '../../../../shared/pipes/zod-validation.pipe'
 import type { ApiResponse as ApiResponseType } from '../../../../shared/helpers/api-response';
 
 @ApiTags('auth')
-@Controller('auth')
+@Controller({ version: '1', path: 'auth' })
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 

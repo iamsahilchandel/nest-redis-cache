@@ -21,9 +21,9 @@ export class ApiKeyGuard implements CanActivate {
     const apiKey = request.headers['x-api-key'] as string;
     const path = request.path;
 
-    const publicRoutes = ['/', '/api', '/api-json', '/api-yaml', '/api/static/*'];
+    const publicPrefixes = ['/', '/api'];
 
-    if (publicRoutes.some((p) => path.startsWith(p))) {
+    if (publicPrefixes.some((p) => path.startsWith(p))) {
       return true;
     }
 

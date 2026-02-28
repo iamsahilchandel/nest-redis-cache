@@ -1,20 +1,28 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpStatus, HttpException, Logger } from '@nestjs/common';
 import { Response, Request } from 'express';
 
 interface CsrfError extends Error {
   code?: string;
 }
 
+const HTTP_STATUS_CODES: Record<number, string> = {
+  [HttpStatus.BAD_REQUEST]: 'BAD_REQUEST',
+  [HttpStatus.UNAUTHORIZED]: 'UNAUTHORIZED',
+  [HttpStatus.FORBIDDEN]: 'FORBIDDEN',
+  [HttpStatus.NOT_FOUND]: 'NOT_FOUND',
+  [HttpStatus.METHOD_NOT_ALLOWED]: 'METHOD_NOT_ALLOWED',
+  [HttpStatus.CONFLICT]: 'CONFLICT',
+  [HttpStatus.UNPROCESSABLE_ENTITY]: 'UNPROCESSABLE_ENTITY',
+  [HttpStatus.TOO_MANY_REQUESTS]: 'TOO_MANY_REQUESTS',
+  [HttpStatus.INTERNAL_SERVER_ERROR]: 'INTERNAL_ERROR',
+};
+
 /**
- * Global CSRF Exception Filter
+ * Global Exception Filter
  *
- * Catches CSRF-related errors from the csurf middleware and transforms them
- * into user-friendly API responses. Enterprise applications use this pattern
- * to prevent leaking stack traces and internal error details.
- *
- * Handled error codes:
- * - EBADCSRFTOKEN: Invalid or tampered CSRF token
- * - CSRF_INVALID: Custom CSRF validation failure
+ * Catches all unhandled exceptions and transforms them into consistent
+ * API responses. Handles CSRF errors, NestJS HttpExceptions, and
+ * unexpected errors with appropriate status codes and error codes.
  */
 @Catch()
 export class CsrfExceptionFilter implements ExceptionFilter {
@@ -45,24 +53,33 @@ export class CsrfExceptionFilter implements ExceptionFilter {
       return;
     }
 
-    // For non-CSRF errors, let other filters handle them or return generic error
-    // This ensures we don't swallow other important exceptions
-    const status =
-      'getStatus' in exception && typeof exception.getStatus === 'function'
-        ? (exception as any).getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    // Handle NestJS HttpExceptions (404, 400, 401, etc.)
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const exceptionResponse = exception.getResponse();
+      const message =
+        typeof exceptionResponse === 'string'
+          ? exceptionResponse
+          : (exceptionResponse as any)?.message || exception.message;
 
-    const message = exception.message || 'Internal server error';
-
-    // Log internal errors with stack trace for debugging
-    if (status === HttpStatus.INTERNAL_SERVER_ERROR) {
-      this.logger.error(`Unhandled exception for ${request.method} ${request.url}: ${message}`, exception.stack);
+      response.status(status).json({
+        success: false,
+        error: message,
+        code: HTTP_STATUS_CODES[status] || 'ERROR',
+        timestamp: new Date().toISOString(),
+        path: request.url,
+      });
+      return;
     }
 
-    response.status(status).json({
+    // Truly unexpected errors — log with stack trace
+    const message = exception.message || 'Internal server error';
+    this.logger.error(`Unhandled exception for ${request.method} ${request.url}: ${message}`, exception.stack);
+
+    response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       success: false,
-      error: status === HttpStatus.INTERNAL_SERVER_ERROR ? 'An unexpected error occurred' : message,
-      code: exception.code || 'INTERNAL_ERROR',
+      error: 'An unexpected error occurred',
+      code: 'INTERNAL_ERROR',
       timestamp: new Date().toISOString(),
       path: request.url,
     });

@@ -1,10 +1,10 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
+import { Logger, VersioningType } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { AppModule } from '../../app.module';
-import { CsrfExceptionFilter } from '../../shared/filters/csrf-exception.filter';
-import { DomainExceptionFilter } from '../../shared/filters/domain-exception.filter';
-import { CorrelationIdMiddleware } from '../../shared/middleware/correlation-id.middleware';
+import { AppModule } from '@/app.module';
+import { CsrfExceptionFilter } from '@/shared/filters/csrf-exception.filter';
+import { DomainExceptionFilter } from '@/shared/filters/domain-exception.filter';
+import { CorrelationIdMiddleware } from '@/shared/middleware/correlation-id.middleware';
 
 import {
   configureHelmet,
@@ -13,9 +13,9 @@ import {
   configureCookieParser,
   configureCsrf,
   configureRateLimit,
-} from './middleware';
+} from '@/app/bootstrap/middleware';
 
-import { configureSwagger } from './swagger/swagger.config';
+import { configureSwagger } from '@/app/bootstrap/swagger/swagger.config';
 
 export async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -28,7 +28,13 @@ export async function bootstrap(): Promise<void> {
 
   logger.log(`🚀 Starting application in ${NODE_ENV || 'development'} mode...`);
 
-  app.setGlobalPrefix('api/v1');
+  app.setGlobalPrefix('api', {
+    exclude: ['/', 'csrf-token', 'health/live', 'health/ready'],
+  });
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  });
   app.useGlobalFilters(new CsrfExceptionFilter(), new DomainExceptionFilter());
 
   const correlationMiddleware = app.get(CorrelationIdMiddleware);
@@ -47,5 +53,5 @@ export async function bootstrap(): Promise<void> {
 
   logger.log(`✅ Application is running on: http://localhost:${SERVER_PORT}`);
   logger.log(`📚 Swagger UI available at: http://localhost:${SERVER_PORT}/api`);
-  logger.log(`🔗 API endpoints available at: http://localhost:${SERVER_PORT}/api/v1`);
+  logger.log(`🔗 API v1 endpoints at: http://localhost:${SERVER_PORT}/api/v1`);
 }

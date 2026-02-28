@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Logger } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, VERSION_NEUTRAL } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { REDIS_CLIENT } from '../../infrastructure/redis/redis.provider';
 import { DATABASE_CONNECTION } from '../../infrastructure/database/database.provider';
@@ -13,7 +13,7 @@ import { sql } from 'drizzle-orm';
  * - /health/ready → Are DB and Redis connections healthy?
  */
 @ApiTags('health')
-@Controller('health')
+@Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
 
