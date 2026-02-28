@@ -20,6 +20,10 @@ export const jwtConfig = registerAs('jwt', () => ({
   refreshTokenExpiry: process.env.JWT_REFRESH_TOKEN_EXPIRY || '7d',
 }));
 
+export const rabbitmqConfig = registerAs('rabbitmq', () => ({
+  url: process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672',
+}));
+
 export const appConfig = registerAs('app', () => ({
   nodeEnv: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.SERVER_PORT || '3000', 10),

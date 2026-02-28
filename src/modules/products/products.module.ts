@@ -6,6 +6,7 @@ import { CacheModule } from '../cache/cache.module';
 import { PRODUCT_REPOSITORY } from './domain/ports/product-repository.port';
 import { DrizzleProductRepository } from './infrastructure/repositories/drizzle-product.repository';
 import { ProductCacheInvalidationHandler } from './infrastructure/event-handlers/product-cache-invalidation.handler';
+import { ProductNotificationConsumer } from './infrastructure/consumers/product-notification.consumer';
 import {
   CreateProductUseCase,
   FindAllProductsUseCase,
@@ -38,6 +39,8 @@ import {
     RemoveProductUseCase,
     // Event handlers
     ProductCacheInvalidationHandler,
+    // RabbitMQ consumers
+    ProductNotificationConsumer,
   ],
   exports: [ProductsService],
 })

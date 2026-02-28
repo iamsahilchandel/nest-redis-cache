@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Logger, VERSION_NEUTRAL } from '@nestjs/common
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { REDIS_CLIENT } from '../../infrastructure/redis/redis.provider';
 import { DATABASE_CONNECTION } from '../../infrastructure/database/database.provider';
+import { RabbitMQService } from '../../infrastructure/rabbitmq/rabbitmq.service';
 import type Redis from 'ioredis';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { sql } from 'drizzle-orm';
@@ -10,7 +11,7 @@ import { sql } from 'drizzle-orm';
  * HealthController - Liveness and readiness probes.
  *
  * - /health/live  → Is the process alive?
- * - /health/ready → Are DB and Redis connections healthy?
+ * - /health/ready → Are DB, Redis, and RabbitMQ connections healthy?
  */
 @ApiTags('health')
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
@@ -20,6 +21,7 @@ export class HealthController {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: PostgresJsDatabase,
     @Inject(REDIS_CLIENT) private readonly redis: Redis,
+    private readonly rabbitmqService: RabbitMQService,
   ) {}
 
   @Get('live')
@@ -33,7 +35,7 @@ export class HealthController {
   }
 
   @Get('ready')
-  @ApiOperation({ summary: 'Readiness probe - checks DB and Redis connectivity' })
+  @ApiOperation({ summary: 'Readiness probe - checks DB, Redis, and RabbitMQ connectivity' })
   @ApiResponse({ status: 200, description: 'All dependencies are healthy' })
   @ApiResponse({ status: 503, description: 'One or more dependencies are unhealthy' })
   async ready() {
@@ -64,6 +66,11 @@ export class HealthController {
         error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
+
+    // Check RabbitMQ
+    checks.rabbitmq = {
+      status: this.rabbitmqService.isConnected() ? 'healthy' : 'unhealthy',
+    };
 
     const allHealthy = Object.values(checks).every((c) => c.status === 'healthy');
 
