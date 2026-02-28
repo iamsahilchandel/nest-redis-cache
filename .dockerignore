@@ -1,0 +1,43 @@
+# Dependencies & build output (installed/built inside the container)
+node_modules
+dist
+build
+
+# Version control
+.git
+.gitignore
+
+# Environment files (secrets should be injected at runtime, not baked in)
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+
+# IDE & editor files
+.vscode
+.idea
+*.sublime-workspace
+
+# Tests & coverage
+coverage
+.nyc_output
+test
+
+# Temp files
+.temp
+.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (no recursive builds)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
